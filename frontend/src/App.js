@@ -11,10 +11,46 @@ import { Badge } from "./components/ui/badge";
 import { Progress } from "./components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
-import { BarChart, Building2, Users, Leaf, Scale, Target, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
+import { BarChart, Building2, Users, Leaf, Scale, Target, ArrowRight, CheckCircle, AlertCircle, TrendingUp, Download, FileText, PieChart, Activity, Award, Calendar, Globe, DollarSign } from "lucide-react";
+import { 
+  ResponsiveContainer, 
+  BarChart as RechartsBarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend,
+  PieChart as RechartsPieChart,
+  Cell,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  LineChart,
+  Line,
+  Area,
+  AreaChart
+} from 'recharts';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Enhanced color palette for charts
+const COLORS = {
+  environmental: '#10b981',
+  social: '#3b82f6', 
+  governance: '#8b5cf6',
+  primary: '#6366f1',
+  secondary: '#ec4899',
+  accent: '#f59e0b',
+  success: '#22c55e',
+  warning: '#eab308',
+  danger: '#ef4444'
+};
+
+const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444'];
 
 // Canvas section definitions for ESG
 const CANVAS_SECTIONS = {
@@ -63,13 +99,13 @@ const CANVAS_SECTIONS = {
   cost_structure: {
     title: "ESG Costs",
     description: "Sustainability investments and ESG-related costs",
-    icon: <BarChart className="h-5 w-5" />,
+    icon: <DollarSign className="h-5 w-5" />,
     color: "from-amber-500 to-orange-600"
   },
   revenue_streams: {
     title: "ESG Value & Benefits",
     description: "Revenue and benefits from ESG initiatives",
-    icon: <Target className="h-5 w-5" />,
+    icon: <TrendingUp className="h-5 w-5" />,
     color: "from-teal-500 to-cyan-600"
   }
 };
@@ -88,6 +124,8 @@ function App() {
   const [answers, setAnswers] = useState({});
   const [assessments, setAssessments] = useState([]);
   const [canvasProgress, setCanvasProgress] = useState({});
+  const [dashboardData, setDashboardData] = useState(null);
+  const [benchmarkingData, setBenchmarkingData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedCanvasSection, setSelectedCanvasSection] = useState(null);
 
@@ -96,7 +134,12 @@ function App() {
     name: '',
     industry: '',
     size: '',
-    country: ''
+    country: '',
+    headquarters: '',
+    website: '',
+    employee_count: '',
+    annual_revenue: '',
+    stock_symbol: ''
   });
 
   useEffect(() => {
@@ -106,8 +149,8 @@ function App() {
   const initializeApp = async () => {
     try {
       setLoading(true);
-      // Initialize sample data
-      await axios.post(`${API}/initialize-sample-data`);
+      // Initialize comprehensive sample data
+      await axios.post(`${API}/initialize-comprehensive-data`);
       
       // Load organizations
       await loadOrganizations();
@@ -127,7 +170,8 @@ function App() {
       setOrganizations(response.data);
       if (response.data.length > 0 && !selectedOrg) {
         setSelectedOrg(response.data[0]);
-        loadAssessments(response.data[0].id);
+        await loadAssessments(response.data[0].id);
+        await loadDashboardData(response.data[0].id);
       }
     } catch (error) {
       console.error('Error loading organizations:', error);
@@ -154,6 +198,20 @@ function App() {
       }
     } catch (error) {
       console.error('Error loading assessments:', error);
+    }
+  };
+
+  const loadDashboardData = async (orgId) => {
+    try {
+      const [dashboardResponse, benchmarkResponse] = await Promise.all([
+        axios.get(`${API}/reports/dashboard/${orgId}`),
+        axios.get(`${API}/reports/benchmarking/${orgId}`)
+      ]);
+      
+      setDashboardData(dashboardResponse.data);
+      setBenchmarkingData(benchmarkResponse.data);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
     }
   };
 
@@ -195,12 +253,21 @@ function App() {
 
   const createOrganization = async () => {
     try {
-      const response = await axios.post(`${API}/organizations`, newOrgForm);
+      const orgData = { ...newOrgForm };
+      if (orgData.employee_count) {
+        orgData.employee_count = parseInt(orgData.employee_count);
+      }
+      
+      const response = await axios.post(`${API}/organizations`, orgData);
       setOrganizations([...organizations, response.data]);
       setSelectedOrg(response.data);
-      setNewOrgForm({ name: '', industry: '', size: '', country: '' });
+      setNewOrgForm({ 
+        name: '', industry: '', size: '', country: '', headquarters: '', 
+        website: '', employee_count: '', annual_revenue: '', stock_symbol: '' 
+      });
       setCurrentView('dashboard');
       await loadAssessments(response.data.id);
+      await loadDashboardData(response.data.id);
     } catch (error) {
       console.error('Error creating organization:', error);
     }
@@ -217,11 +284,12 @@ function App() {
         comments
       });
       
-      // Reload answers and progress
+      // Reload answers, progress, and dashboard data
       await loadAnswers(selectedOrg.id);
       if (assessments.length > 0) {
         await loadCanvasProgress(assessments[0].id);
       }
+      await loadDashboardData(selectedOrg.id);
     } catch (error) {
       console.error('Error saving answer:', error);
     }
@@ -235,6 +303,365 @@ function App() {
       }
     }
   }, [selectedOrg, assessments]);
+
+  // Dashboard Components
+  const ESGScoreCard = ({ title, score, icon, color, trend }) => (
+    <Card className="relative overflow-hidden">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className={`p-2 rounded-lg ${color}`}>
+              {icon}
+            </div>
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          </div>
+          {trend && (
+            <div className="flex items-center text-xs text-green-600">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              +{trend}%
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-gray-900">
+          {score.toFixed(1)}
+        </div>
+        <div className="text-xs text-gray-500">out of 100</div>
+        <Progress value={score} className="mt-2 h-2" />
+      </CardContent>
+    </Card>
+  );
+
+  const KPICard = ({ title, value, subtitle, icon, trend }) => (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <p className="text-xs text-gray-500">{subtitle}</p>
+          </div>
+          <div className="text-gray-400">
+            {icon}
+          </div>
+        </div>
+        {trend && (
+          <div className="mt-4 flex items-center text-sm text-green-600">
+            <TrendingUp className="h-4 w-4 mr-1" />
+            {trend} from last assessment
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderAdvancedDashboard = () => {
+    if (!dashboardData) {
+      return (
+        <div className="text-center py-12">
+          <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Dashboard Data</h3>
+          <p className="text-gray-500">Please wait while we load your ESG analytics...</p>
+        </div>
+      );
+    }
+
+    // Prepare chart data
+    const esgScoreData = [
+      { name: 'Environmental', score: dashboardData.esg_scores.environmental, fill: COLORS.environmental },
+      { name: 'Social', score: dashboardData.esg_scores.social, fill: COLORS.social },
+      { name: 'Governance', score: dashboardData.esg_scores.governance, fill: COLORS.governance }
+    ];
+
+    const canvasProgressData = Object.entries(dashboardData.canvas_completion).map(([key, value]) => ({
+      name: CANVAS_SECTIONS[key]?.title || key,
+      progress: value.percentage,
+      answered: value.answered,
+      total: value.total
+    }));
+
+    const comparisonData = benchmarkingData ? [
+      { 
+        category: 'Environmental', 
+        organization: benchmarkingData.organization_scores.environmental,
+        industry: benchmarkingData.industry_averages.environmental
+      },
+      { 
+        category: 'Social', 
+        organization: benchmarkingData.organization_scores.social,
+        industry: benchmarkingData.industry_averages.social
+      },
+      { 
+        category: 'Governance', 
+        organization: benchmarkingData.organization_scores.governance,
+        industry: benchmarkingData.industry_averages.governance
+      }
+    ] : [];
+
+    return (
+      <div className="space-y-8">
+        {/* Header Section */}
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">ESG Analytics Dashboard</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Comprehensive sustainability performance metrics and insights for {selectedOrg?.name}
+          </p>
+        </div>
+
+        {/* KPI Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <KPICard
+            title="Overall ESG Score"
+            value={dashboardData.overall_score.toFixed(1)}
+            subtitle="Out of 100"
+            icon={<Award className="h-8 w-8" />}
+            trend="+5.2 points"
+          />
+          <KPICard
+            title="Assessment Progress"
+            value={`${dashboardData.completion_percentage.toFixed(0)}%`}
+            subtitle={`${dashboardData.answered_questions}/${dashboardData.total_questions} questions`}
+            icon={<CheckCircle className="h-8 w-8" />}
+            trend="+12% completed"
+          />
+          <KPICard
+            title="Active Assessments"
+            value={dashboardData.assessments_count}
+            subtitle="Current evaluations"
+            icon={<FileText className="h-8 w-8" />}
+          />
+          <KPICard
+            title="Industry Ranking"
+            value={benchmarkingData ? "Top 25%" : "N/A"}
+            subtitle={benchmarkingData ? `vs ${benchmarkingData.peer_count} peers` : "Insufficient data"}
+            icon={<TrendingUp className="h-8 w-8" />}
+            trend="↑ 3 positions"
+          />
+        </div>
+
+        {/* ESG Score Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ESGScoreCard
+            title="Environmental Score"
+            score={dashboardData.esg_scores.environmental}
+            icon={<Leaf className="h-5 w-5 text-white" />}
+            color="bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+            trend={2.3}
+          />
+          <ESGScoreCard
+            title="Social Score"
+            score={dashboardData.esg_scores.social}
+            icon={<Users className="h-5 w-5 text-white" />}
+            color="bg-gradient-to-r from-blue-500 to-cyan-600 text-white"
+            trend={1.8}
+          />
+          <ESGScoreCard
+            title="Governance Score"
+            score={dashboardData.esg_scores.governance}
+            icon={<Scale className="h-5 w-5 text-white" />}
+            color="bg-gradient-to-r from-purple-500 to-indigo-600 text-white"
+            trend={3.1}
+          />
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* ESG Performance Radar Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <PieChart className="h-5 w-5 mr-2" />
+                ESG Performance Overview
+              </CardTitle>
+              <CardDescription>Comprehensive view of your ESG scores across all categories</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <RadarChart data={esgScoreData}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="name" />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                  <Radar name="ESG Score" dataKey="score" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.3} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Canvas Section Progress */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart className="h-5 w-5 mr-2" />
+                Canvas Section Progress
+              </CardTitle>
+              <CardDescription>Completion status across all business model canvas sections</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsBarChart data={canvasProgressData} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" domain={[0, 100]} />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip formatter={(value) => [`${value.toFixed(1)}%`, 'Progress']} />
+                  <Bar dataKey="progress" fill={COLORS.primary} />
+                </RechartsBarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Industry Comparison */}
+          {benchmarkingData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2" />
+                  Industry Benchmarking
+                </CardTitle>
+                <CardDescription>
+                  Your performance vs {benchmarkingData.industry} industry average
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsBarChart data={comparisonData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="category" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="organization" fill={COLORS.primary} name="Your Organization" />
+                    <Bar dataKey="industry" fill={COLORS.secondary} name="Industry Average" />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ESG Score Trend (Placeholder for future functionality) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Activity className="h-5 w-5 mr-2" />
+                Score Trend Analysis
+              </CardTitle>
+              <CardDescription>Historical ESG performance trends</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] flex items-center justify-center bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 font-medium">Historical Data Coming Soon</p>
+                  <p className="text-sm text-gray-500">Complete more assessments to see trends</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Detailed Canvas Sections Grid */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Target className="h-5 w-5 mr-2" />
+              Canvas Section Detailed View
+            </CardTitle>
+            <CardDescription>Click on any section to start or continue assessment</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(CANVAS_SECTIONS).map(([key, section]) => {
+                const completion = dashboardData.canvas_completion[key];
+                const progress = completion ? completion.percentage : 0;
+                
+                return (
+                  <Card key={key} className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-gray-300" 
+                        onClick={() => {setSelectedCanvasSection(key); setCurrentView('assessment');}}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className={`p-2 rounded-lg bg-gradient-to-r ${section.color} text-white`}>
+                          {section.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm truncate">{section.title}</h4>
+                          <p className="text-xs text-gray-500 line-clamp-2">{section.description}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span>Progress</span>
+                          <span className="font-medium">{Math.round(progress)}%</span>
+                        </div>
+                        <Progress value={progress} className="h-1.5" />
+                        {completion && (
+                          <div className="text-xs text-gray-500">
+                            {completion.answered} of {completion.total} questions completed
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Action Items */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              Recommended Actions
+            </CardTitle>
+            <CardDescription>Priority actions to improve your ESG performance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-yellow-800">Complete Environmental Assessment</h4>
+                  <p className="text-sm text-yellow-700">
+                    {100 - dashboardData.esg_completion.environmental.percentage}% of environmental questions remain unanswered
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => {setCurrentView('assessment')}}>
+                  Start <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+              
+              <div className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <TrendingUp className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-800">Improve Social Score</h4>
+                  <p className="text-sm text-blue-700">
+                    Your social score is {dashboardData.esg_scores.social.toFixed(1)} - focus on stakeholder engagement questions
+                  </p>
+                </div>
+                <Button size="sm" variant="outline">
+                  View Details <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+              
+              <div className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-green-800">Strong Governance Foundation</h4>
+                  <p className="text-sm text-green-700">
+                    Your governance score of {dashboardData.esg_scores.governance.toFixed(1)} is above industry average
+                  </p>
+                </div>
+                <Button size="sm" variant="outline">
+                  Maintain <CheckCircle className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
 
   const renderCanvasSection = (sectionKey) => {
     const section = CANVAS_SECTIONS[sectionKey];
@@ -301,6 +728,9 @@ function App() {
                 {question.reference_code && (
                   <Badge variant="secondary">{question.reference_code}</Badge>
                 )}
+                <Badge variant="outline" className="text-xs">
+                  Weight: {question.weight}
+                </Badge>
               </div>
             </div>
           </div>
@@ -358,7 +788,7 @@ function App() {
                 <SelectContent>
                   {Array.from({length: question.scale_max - question.scale_min + 1}, (_, i) => {
                     const value = question.scale_min + i;
-                    const label = question.scale_labels?.[value] || value.toString();
+                    const label = question.scale_labels?.[value.toString()] || value.toString();
                     return (
                       <SelectItem key={value} value={value.toString()}>
                         {value} - {label}
@@ -407,7 +837,7 @@ function App() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">ESG Canvas Reporter</h1>
-                  <p className="text-sm text-gray-500">Sustainability Reporting Platform</p>
+                  <p className="text-sm text-gray-500">Advanced Sustainability Analytics Platform</p>
                 </div>
               </div>
             </div>
@@ -420,10 +850,13 @@ function App() {
                 </div>
               )}
               
-              <Select value={selectedOrg?.id || ''} onValueChange={(value) => {
+              <Select value={selectedOrg?.id || ''} onValueChange={async (value) => {
                 const org = organizations.find(o => o.id === value);
                 setSelectedOrg(org);
-                if (org) loadAssessments(org.id);
+                if (org) {
+                  await loadAssessments(org.id);
+                  await loadDashboardData(org.id);
+                }
               }}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Select Organization" />
@@ -439,14 +872,14 @@ function App() {
                 <DialogTrigger asChild>
                   <Button variant="outline">Add Organization</Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Create New Organization</DialogTitle>
-                    <DialogDescription>Add a new organization to start ESG reporting.</DialogDescription>
+                    <DialogDescription>Add a new organization to start comprehensive ESG reporting.</DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="orgName">Organization Name</Label>
+                      <Label htmlFor="orgName">Organization Name *</Label>
                       <Input 
                         id="orgName"
                         value={newOrgForm.name}
@@ -486,6 +919,61 @@ function App() {
                         placeholder="e.g., United States"
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="headquarters">Headquarters</Label>
+                      <Input 
+                        id="headquarters"
+                        value={newOrgForm.headquarters}
+                        onChange={(e) => setNewOrgForm({...newOrgForm, headquarters: e.target.value})}
+                        placeholder="e.g., New York, NY"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="website">Website</Label>
+                      <Input 
+                        id="website"
+                        value={newOrgForm.website}
+                        onChange={(e) => setNewOrgForm({...newOrgForm, website: e.target.value})}
+                        placeholder="https://company.com"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="employeeCount">Employee Count</Label>
+                      <Input 
+                        id="employeeCount"
+                        type="number"
+                        value={newOrgForm.employee_count}
+                        onChange={(e) => setNewOrgForm({...newOrgForm, employee_count: e.target.value})}
+                        placeholder="e.g., 1250"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="revenue">Annual Revenue</Label>
+                      <Select value={newOrgForm.annual_revenue} onValueChange={(value) => setNewOrgForm({...newOrgForm, annual_revenue: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select revenue range" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Under $1M">Under $1M</SelectItem>
+                          <SelectItem value="$1M - $10M">$1M - $10M</SelectItem>
+                          <SelectItem value="$10M - $100M">$10M - $100M</SelectItem>
+                          <SelectItem value="$100M - $500M">$100M - $500M</SelectItem>
+                          <SelectItem value="$500M - $1B">$500M - $1B</SelectItem>
+                          <SelectItem value="$1B+">$1B+</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="stockSymbol">Stock Symbol (if public)</Label>
+                      <Input 
+                        id="stockSymbol"
+                        value={newOrgForm.stock_symbol}
+                        onChange={(e) => setNewOrgForm({...newOrgForm, stock_symbol: e.target.value})}
+                        placeholder="e.g., AAPL"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-6">
                     <Button onClick={createOrganization} className="w-full">Create Organization</Button>
                   </div>
                 </DialogContent>
@@ -501,17 +989,22 @@ function App() {
           <div className="text-center py-12">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Organization Selected</h3>
-            <p className="text-gray-500 mb-4">Please select or create an organization to start ESG reporting.</p>
+            <p className="text-gray-500 mb-4">Please select or create an organization to start comprehensive ESG reporting.</p>
           </div>
         ) : (
           <Tabs value={currentView} onValueChange={setCurrentView}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="dashboard">ESG Canvas</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="dashboard">Analytics Dashboard</TabsTrigger>
+              <TabsTrigger value="canvas">ESG Canvas</TabsTrigger>
               <TabsTrigger value="assessment">Assessment</TabsTrigger>
-              <TabsTrigger value="reports">Reports</TabsTrigger>
+              <TabsTrigger value="reports">Reports & Export</TabsTrigger>
             </TabsList>
             
             <TabsContent value="dashboard" className="space-y-6">
+              {renderAdvancedDashboard()}
+            </TabsContent>
+            
+            <TabsContent value="canvas" className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">ESG Business Model Canvas</h2>
                 <p className="text-gray-600 max-w-2xl mx-auto">
@@ -553,8 +1046,8 @@ function App() {
                 <div className="text-center py-12">
                   <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Canvas Section</h3>
-                  <p className="text-gray-500 mb-4">Choose a canvas section from the dashboard to start the assessment.</p>
-                  <Button onClick={() => setCurrentView('dashboard')}>
+                  <p className="text-gray-500 mb-4">Choose a canvas section from the ESG Canvas to start the assessment.</p>
+                  <Button onClick={() => setCurrentView('canvas')}>
                     Go to ESG Canvas
                   </Button>
                 </div>
@@ -562,11 +1055,65 @@ function App() {
             </TabsContent>
             
             <TabsContent value="reports" className="space-y-6">
-              <div className="text-center py-12">
-                <BarChart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Reports & Analytics</h3>
-                <p className="text-gray-500 mb-4">Comprehensive ESG reporting and analytics (Coming Soon)</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Reports & Export</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Generate comprehensive ESG reports and export data for stakeholders
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <FileText className="h-5 w-5 mr-2" />
+                      Comprehensive ESG Report
+                    </CardTitle>
+                    <CardDescription>Full sustainability assessment report with all metrics</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button className="w-full" variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Generate PDF Report
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <BarChart className="h-5 w-5 mr-2" />
+                      Executive Summary
+                    </CardTitle>
+                    <CardDescription>High-level overview for stakeholders and board</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button className="w-full" variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Summary
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Globe className="h-5 w-5 mr-2" />
+                      GRI Standards Report
+                    </CardTitle>
+                    <CardDescription>GRI-compliant sustainability reporting format</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button className="w-full" variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download GRI Report
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {dashboardData && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(canvasProgress).map(([section, progress]) => (
                     <Card key={section}>
                       <CardContent className="p-4">
@@ -583,7 +1130,7 @@ function App() {
                     </Card>
                   ))}
                 </div>
-              </div>
+              )}
             </TabsContent>
           </Tabs>
         )}
