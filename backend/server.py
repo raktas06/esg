@@ -325,7 +325,7 @@ async def initialize_sample_data():
             "reference_code": "GRI 308-1",
             "scale_min": 1,
             "scale_max": 5,
-            "scale_labels": {1: "No partnerships", 2: "Few partnerships", 3: "Some partnerships", 4: "Most partnerships", 5: "All partnerships"}
+            "scale_labels": {"1": "No partnerships", "2": "Few partnerships", "3": "Some partnerships", "4": "Most partnerships", "5": "All partnerships"}
         },
         # Environmental - Key Activities
         {
