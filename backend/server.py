@@ -83,7 +83,7 @@ class QuestionCreate(BaseModel):
     options: Optional[List[str]] = None
     scale_min: Optional[int] = None
     scale_max: Optional[int] = None
-    scale_labels: Optional[Dict[int, str]] = None
+    scale_labels: Optional[Dict[str, str]] = None
     is_required: bool = True
 
 class Answer(BaseModel):
