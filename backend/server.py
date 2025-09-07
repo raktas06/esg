@@ -307,9 +307,9 @@ async def get_assessment_progress(assessment_id: str):
 # Initialize sample data route
 @api_router.post("/initialize-sample-data")
 async def initialize_sample_data():
-    # Check if data already exists
+    # Check if we have all sample questions (should be 5)
     existing_questions = await db.questions.count_documents({})
-    if existing_questions > 0:
+    if existing_questions >= 5:
         return {"message": "Sample data already exists"}
     
     # Sample questions based on GRI, EFRAG, IFRS standards
