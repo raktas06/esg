@@ -68,7 +68,7 @@ class Question(BaseModel):
     options: Optional[List[str]] = None  # for multiple choice
     scale_min: Optional[int] = None  # for scale questions
     scale_max: Optional[int] = None
-    scale_labels: Optional[Dict[int, str]] = None
+    scale_labels: Optional[Dict[str, str]] = None
     is_required: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
