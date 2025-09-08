@@ -14,7 +14,7 @@ class ESGAPITester:
 
     def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
         """Run a single API test"""
-        url = f"{self.base_url}/{endpoint}"
+        url = f"{self.api_url}/{endpoint}"
         headers = {'Content-Type': 'application/json'}
 
         self.tests_run += 1
@@ -28,8 +28,6 @@ class ESGAPITester:
                 response = requests.post(url, json=data, headers=headers)
             elif method == 'PUT':
                 response = requests.put(url, json=data, headers=headers)
-            elif method == 'DELETE':
-                response = requests.delete(url, headers=headers)
 
             success = response.status_code == expected_status
             if success:
@@ -37,21 +35,21 @@ class ESGAPITester:
                 print(f"✅ Passed - Status: {response.status_code}")
                 try:
                     response_data = response.json()
-                    if isinstance(response_data, dict) and len(str(response_data)) < 500:
-                        print(f"   Response: {response_data}")
-                    elif isinstance(response_data, list):
+                    if isinstance(response_data, dict) and len(response_data) > 0:
+                        print(f"   Response keys: {list(response_data.keys())}")
+                    elif isinstance(response_data, list) and len(response_data) > 0:
                         print(f"   Response: List with {len(response_data)} items")
-                    return True, response_data
                 except:
-                    return True, {}
+                    print(f"   Response: Non-JSON content (length: {len(response.content)})")
             else:
                 print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
                 try:
-                    error_data = response.json()
-                    print(f"   Error: {error_data}")
+                    error_detail = response.json()
+                    print(f"   Error: {error_detail}")
                 except:
-                    print(f"   Error: {response.text}")
-                return False, {}
+                    print(f"   Error: {response.text[:200]}")
+
+            return success, response.json() if success and response.content else {}
 
         except Exception as e:
             print(f"❌ Failed - Error: {str(e)}")
