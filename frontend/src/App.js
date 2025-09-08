@@ -128,6 +128,9 @@ function App() {
   const [canvasProgress, setCanvasProgress] = useState({});
   const [dashboardData, setDashboardData] = useState(null);
   const [benchmarkingData, setBenchmarkingData] = useState(null);
+  const [materialityData, setMaterialityData] = useState(null);
+  const [financialImpactData, setFinancialImpactData] = useState(null);
+  const [ifrsComplianceData, setIFRSComplianceData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedCanvasSection, setSelectedCanvasSection] = useState(null);
 
