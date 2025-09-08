@@ -104,6 +104,53 @@ class ReportType(str, Enum):
     FINANCIAL_IMPACT = "financial_impact"
     FINANCIAL_STATEMENTS = "financial_statements"
     INTEGRATED_REPORT = "integrated_report"
+    RISK_ASSESSMENT = "risk_assessment"
+    SCENARIO_ANALYSIS = "scenario_analysis"
+    SWOT_ANALYSIS = "swot_analysis"
+
+class RiskType(str, Enum):
+    PHYSICAL_RISK = "physical_risk"
+    TRANSITION_RISK = "transition_risk"
+    REGULATORY_RISK = "regulatory_risk"
+    REPUTATIONAL_RISK = "reputational_risk"
+    OPERATIONAL_RISK = "operational_risk"
+    FINANCIAL_RISK = "financial_risk"
+    STRATEGIC_RISK = "strategic_risk"
+
+class OpportunityType(str, Enum):
+    RESOURCE_EFFICIENCY = "resource_efficiency"
+    ENERGY_SOURCE = "energy_source"
+    PRODUCTS_SERVICES = "products_services"
+    MARKETS = "markets"
+    RESILIENCE = "resilience"
+    INNOVATION = "innovation"
+    STRATEGIC_PARTNERSHIP = "strategic_partnership"
+
+class SWOTCategory(str, Enum):
+    STRENGTH = "strength"
+    WEAKNESS = "weakness"
+    OPPORTUNITY = "opportunity"
+    THREAT = "threat"
+
+class ScenarioType(str, Enum):
+    BEST_CASE = "best_case"
+    MOST_LIKELY = "most_likely"
+    WORST_CASE = "worst_case"
+    STRESS_TEST = "stress_test"
+
+class RiskLikelihood(str, Enum):
+    VERY_LOW = "very_low"      # 0-5%
+    LOW = "low"                # 6-25%
+    MEDIUM = "medium"          # 26-50%
+    HIGH = "high"              # 51-75%
+    VERY_HIGH = "very_high"    # 76-100%
+
+class RiskImpact(str, Enum):
+    NEGLIGIBLE = "negligible"  # 1
+    MINOR = "minor"           # 2
+    MODERATE = "moderate"     # 3
+    MAJOR = "major"           # 4
+    SEVERE = "severe"         # 5
 
 class FinancialStatementType(str, Enum):
     BALANCE_SHEET = "balance_sheet"
