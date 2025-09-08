@@ -531,6 +531,15 @@ def main():
     test_results.append(tester.test_create_ifrs_mapping())
     test_results.append(tester.test_get_ifrs_compliance_status())
     
+    # Financial Statements Tests (NEW CRITICAL FUNCTIONALITY)
+    print("\n💰 Testing Financial Statements & IAS/IFRS Integration...")
+    test_results.append(tester.test_create_balance_sheet_item())
+    test_results.append(tester.test_create_income_statement_item())
+    test_results.append(tester.test_create_cash_flow_item())
+    test_results.append(tester.test_create_financial_ratio())
+    test_results.append(tester.test_get_financial_analysis())
+    test_results.append(tester.test_get_integrated_report())
+    
     # Analytics and reporting tests
     print("\n📊 Testing Analytics & Reporting...")
     test_results.append(tester.test_dashboard_data())
