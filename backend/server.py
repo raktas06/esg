@@ -102,6 +102,23 @@ class ReportType(str, Enum):
     IFRS_COMPLIANCE = "ifrs_compliance"
     MATERIALITY_ASSESSMENT = "materiality_assessment"
     FINANCIAL_IMPACT = "financial_impact"
+    FINANCIAL_STATEMENTS = "financial_statements"
+    INTEGRATED_REPORT = "integrated_report"
+
+class FinancialStatementType(str, Enum):
+    BALANCE_SHEET = "balance_sheet"
+    INCOME_STATEMENT = "income_statement" 
+    CASH_FLOW_STATEMENT = "cash_flow_statement"
+    STATEMENT_OF_EQUITY = "statement_of_equity"
+
+class IASStandard(str, Enum):
+    IAS_1 = "IAS_1"  # Presentation of Financial Statements
+    IAS_7 = "IAS_7"  # Statement of Cash Flows
+    IAS_8 = "IAS_8"  # Accounting Policies, Changes in Accounting Estimates and Errors
+    IAS_16 = "IAS_16"  # Property, Plant and Equipment
+    IAS_36 = "IAS_36"  # Impairment of Assets
+    IAS_37 = "IAS_37"  # Provisions, Contingent Liabilities and Contingent Assets
+    IAS_38 = "IAS_38"  # Intangible Assets
 
 # Enhanced Models with Double Materiality and Financial Integration
 class MaterialityAssessment(BaseModel):
