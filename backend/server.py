@@ -567,6 +567,240 @@ CANVAS_SECTIONS = {
 async def root():
     return {"message": "ESG Reporting API v3.0 - Enhanced with Double Materiality & IFRS Integration"}
 
+# Financial Statements Routes
+@api_router.post("/financial-statements/balance-sheet", response_model=BalanceSheetLineItem)
+async def create_balance_sheet_item(input: BalanceSheetCreate):
+    item_dict = input.dict()
+    item_obj = BalanceSheetLineItem(**item_dict)
+    item_data = prepare_for_mongo(item_obj.dict())
+    await db.balance_sheet_items.insert_one(item_data)
+    return item_obj
+
+@api_router.get("/financial-statements/balance-sheet", response_model=List[BalanceSheetLineItem])
+async def get_balance_sheet_items(organization_id: Optional[str] = None, reporting_period: Optional[str] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if reporting_period:
+        filter_dict["reporting_period"] = reporting_period
+    
+    items = await db.balance_sheet_items.find(filter_dict).to_list(1000)
+    return [BalanceSheetLineItem(**parse_from_mongo(item)) for item in items]
+
+@api_router.post("/financial-statements/income-statement", response_model=IncomeStatementLineItem)
+async def create_income_statement_item(input: IncomeStatementCreate):
+    item_dict = input.dict()
+    item_obj = IncomeStatementLineItem(**item_dict)
+    item_data = prepare_for_mongo(item_obj.dict())
+    await db.income_statement_items.insert_one(item_data)
+    return item_obj
+
+@api_router.get("/financial-statements/income-statement", response_model=List[IncomeStatementLineItem])
+async def get_income_statement_items(organization_id: Optional[str] = None, reporting_period: Optional[str] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if reporting_period:
+        filter_dict["reporting_period"] = reporting_period
+    
+    items = await db.income_statement_items.find(filter_dict).to_list(1000)
+    return [IncomeStatementLineItem(**parse_from_mongo(item)) for item in items]
+
+@api_router.post("/financial-statements/cash-flow", response_model=CashFlowLineItem)
+async def create_cash_flow_item(input: CashFlowCreate):
+    item_dict = input.dict()
+    item_obj = CashFlowLineItem(**item_dict)
+    item_data = prepare_for_mongo(item_obj.dict())
+    await db.cash_flow_items.insert_one(item_data)
+    return item_obj
+
+@api_router.get("/financial-statements/cash-flow", response_model=List[CashFlowLineItem])
+async def get_cash_flow_items(organization_id: Optional[str] = None, reporting_period: Optional[str] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if reporting_period:
+        filter_dict["reporting_period"] = reporting_period
+    
+    items = await db.cash_flow_items.find(filter_dict).to_list(1000)
+    return [CashFlowLineItem(**parse_from_mongo(item)) for item in items]
+
+@api_router.post("/financial-ratios", response_model=FinancialRatio)
+async def create_financial_ratio(input: FinancialRatioCreate):
+    ratio_dict = input.dict()
+    ratio_obj = FinancialRatio(**ratio_dict)
+    ratio_data = prepare_for_mongo(ratio_obj.dict())
+    await db.financial_ratios.insert_one(ratio_data)
+    return ratio_obj
+
+@api_router.get("/financial-ratios", response_model=List[FinancialRatio])
+async def get_financial_ratios(organization_id: Optional[str] = None, reporting_period: Optional[str] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if reporting_period:
+        filter_dict["reporting_period"] = reporting_period
+    
+    ratios = await db.financial_ratios.find(filter_dict).to_list(1000)
+    return [FinancialRatio(**parse_from_mongo(ratio)) for ratio in ratios]
+
+# Comprehensive Financial Analysis Routes
+@api_router.get("/financial-analysis/{organization_id}")
+async def get_comprehensive_financial_analysis(organization_id: str, reporting_period: Optional[str] = None):
+    """Get comprehensive financial analysis including statements, ratios, and ESG integration"""
+    
+    org = await db.organizations.find_one({"id": organization_id})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    filter_dict = {"organization_id": organization_id}
+    if reporting_period:
+        filter_dict["reporting_period"] = reporting_period
+    
+    # Get financial statement data
+    balance_sheet = await db.balance_sheet_items.find(filter_dict).to_list(1000)
+    income_statement = await db.income_statement_items.find(filter_dict).to_list(1000)
+    cash_flow = await db.cash_flow_items.find(filter_dict).to_list(1000)
+    financial_ratios = await db.financial_ratios.find(filter_dict).to_list(1000)
+    
+    # Calculate key financial metrics
+    total_assets = sum([item["amount"] for item in balance_sheet if item["category"] == "Assets"])
+    total_liabilities = sum([item["amount"] for item in balance_sheet if item["category"] == "Liabilities"])
+    total_equity = sum([item["amount"] for item in balance_sheet if item["category"] == "Equity"])
+    
+    total_revenue = sum([item["amount"] for item in income_statement if item["category"] == "Revenue"])
+    total_expenses = sum([item["amount"] for item in income_statement if item["category"] in ["Cost of Sales", "Operating Expenses", "Other Expenses"]])
+    net_income = total_revenue - total_expenses
+    
+    operating_cash_flow = sum([item["amount"] for item in cash_flow if item["category"] == "Operating"])
+    investing_cash_flow = sum([item["amount"] for item in cash_flow if item["category"] == "Investing"])
+    financing_cash_flow = sum([item["amount"] for item in cash_flow if item["category"] == "Financing"])
+    
+    # Calculate ESG-related financial impacts
+    esg_balance_sheet = [item for item in balance_sheet if item.get("esg_related")]
+    esg_income_statement = [item for item in income_statement if item.get("esg_related")]
+    esg_cash_flow = [item for item in cash_flow if item.get("esg_related")]
+    
+    esg_asset_impact = sum([item["amount"] for item in esg_balance_sheet if item["category"] == "Assets"])
+    esg_revenue_impact = sum([item["amount"] for item in esg_income_statement if item["category"] == "Revenue"])
+    esg_expense_impact = sum([item["amount"] for item in esg_income_statement if item["category"] in ["Cost of Sales", "Operating Expenses", "Other Expenses"]])
+    esg_cash_impact = sum([item["amount"] for item in esg_cash_flow])
+    
+    # Prepare summary
+    financial_summary = {
+        "organization_id": organization_id,
+        "reporting_period": reporting_period,
+        "currency": org.get("base_currency", "USD"),
+        "balance_sheet_summary": {
+            "total_assets": total_assets,
+            "total_liabilities": total_liabilities,
+            "total_equity": total_equity,
+            "debt_to_equity_ratio": total_liabilities / total_equity if total_equity != 0 else 0
+        },
+        "income_statement_summary": {
+            "total_revenue": total_revenue,
+            "total_expenses": total_expenses,
+            "net_income": net_income,
+            "profit_margin": (net_income / total_revenue * 100) if total_revenue != 0 else 0
+        },
+        "cash_flow_summary": {
+            "operating_cash_flow": operating_cash_flow,
+            "investing_cash_flow": investing_cash_flow,
+            "financing_cash_flow": financing_cash_flow,
+            "net_cash_flow": operating_cash_flow + investing_cash_flow + financing_cash_flow
+        },
+        "esg_financial_integration": {
+            "esg_asset_impact": esg_asset_impact,
+            "esg_revenue_impact": esg_revenue_impact,
+            "esg_expense_impact": esg_expense_impact,
+            "esg_cash_impact": esg_cash_impact,
+            "esg_net_income_impact": esg_revenue_impact - esg_expense_impact,
+            "esg_roi": ((esg_revenue_impact - esg_expense_impact) / abs(esg_expense_impact) * 100) if esg_expense_impact != 0 else 0
+        },
+        "key_ratios": {
+            "current_ratio": calculate_current_ratio(balance_sheet),
+            "debt_to_assets": total_liabilities / total_assets if total_assets != 0 else 0,
+            "return_on_assets": (net_income / total_assets * 100) if total_assets != 0 else 0,
+            "return_on_equity": (net_income / total_equity * 100) if total_equity != 0 else 0
+        },
+        "ias_ifrs_compliance": {
+            "compliant_items": len([item for item in balance_sheet + income_statement + cash_flow if item.get("ias_ifrs_reference")]),
+            "total_items": len(balance_sheet + income_statement + cash_flow),
+            "compliance_percentage": (len([item for item in balance_sheet + income_statement + cash_flow if item.get("ias_ifrs_reference")]) / len(balance_sheet + income_statement + cash_flow) * 100) if (balance_sheet + income_statement + cash_flow) else 0
+        }
+    }
+    
+    return financial_summary
+
+def calculate_current_ratio(balance_sheet_items):
+    """Calculate current ratio from balance sheet items"""
+    current_assets = sum([item["amount"] for item in balance_sheet_items 
+                         if item["category"] == "Assets" and "Current" in item.get("subcategory", "")])
+    current_liabilities = sum([item["amount"] for item in balance_sheet_items 
+                              if item["category"] == "Liabilities" and "Current" in item.get("subcategory", "")])
+    return current_assets / current_liabilities if current_liabilities != 0 else 0
+
+# Integrated ESG-Financial Reporting
+@api_router.get("/integrated-report/{organization_id}")
+async def get_integrated_esg_financial_report(organization_id: str, reporting_period: Optional[str] = None):
+    """Generate integrated report combining ESG performance with financial results"""
+    
+    # Get ESG data
+    esg_dashboard_data = await get_dashboard_data(organization_id)
+    
+    # Get financial data
+    financial_analysis = await get_comprehensive_financial_analysis(organization_id, reporting_period)
+    
+    # Get materiality and financial impact data
+    materiality_data = await get_materiality_matrix(organization_id)
+    financial_impact_summary = await get_financial_impact_summary(organization_id)
+    
+    # Create integrated analysis
+    integrated_metrics = {
+        "esg_score_to_financial_performance": {
+            "overall_esg_score": esg_dashboard_data["overall_score"],
+            "net_income": financial_analysis["income_statement_summary"]["net_income"],
+            "profit_margin": financial_analysis["income_statement_summary"]["profit_margin"],
+            "esg_revenue_correlation": financial_analysis["esg_financial_integration"]["esg_revenue_impact"],
+            "esg_roi": financial_analysis["esg_financial_integration"]["esg_roi"]
+        },
+        "materiality_financial_linkage": {
+            "high_priority_topics": len(materiality_data.get("high_priority_topics", [])),
+            "financial_material_topics": len([t for t in materiality_data.get("matrix_data", []) if t.get("financial_materiality", 0) >= 7.0]),
+            "projected_financial_impact": financial_impact_summary.get("total_projected_impact", 0)
+        },
+        "sustainability_accounting": {
+            "esg_asset_allocation": financial_analysis["esg_financial_integration"]["esg_asset_impact"],
+            "sustainability_investments": abs(financial_analysis["esg_financial_integration"]["esg_expense_impact"]),
+            "green_revenue_streams": financial_analysis["esg_financial_integration"]["esg_revenue_impact"],
+            "net_sustainability_value": financial_analysis["esg_financial_integration"]["esg_net_income_impact"]
+        },
+        "compliance_integration": {
+            "ifrs_s1_s2_alignment": esg_dashboard_data.get("ifrs_compliance", {}).get("compliance_percentage", 0),
+            "ias_ifrs_financial_compliance": financial_analysis["ias_ifrs_compliance"]["compliance_percentage"],
+            "integrated_disclosure_readiness": (esg_dashboard_data.get("ifrs_compliance", {}).get("compliance_percentage", 0) + financial_analysis["ias_ifrs_compliance"]["compliance_percentage"]) / 2
+        }
+    }
+    
+    return {
+        "organization_id": organization_id,
+        "reporting_period": reporting_period,
+        "esg_performance": esg_dashboard_data,
+        "financial_performance": financial_analysis,
+        "integrated_metrics": integrated_metrics,
+        "executive_summary": {
+            "esg_score": esg_dashboard_data["overall_score"],
+            "financial_health": "Strong" if financial_analysis["income_statement_summary"]["profit_margin"] > 10 else "Moderate" if financial_analysis["income_statement_summary"]["profit_margin"] > 0 else "Needs Attention",
+            "sustainability_roi": financial_analysis["esg_financial_integration"]["esg_roi"],
+            "compliance_status": "Compliant" if integrated_metrics["compliance_integration"]["integrated_disclosure_readiness"] > 80 else "Needs Improvement",
+            "key_insights": [
+                f"ESG score of {esg_dashboard_data['overall_score']:.1f} correlates with {financial_analysis['income_statement_summary']['profit_margin']:.1f}% profit margin",
+                f"Sustainability investments of ${abs(financial_analysis['esg_financial_integration']['esg_expense_impact']):,.0f} generated ${financial_analysis['esg_financial_integration']['esg_revenue_impact']:,.0f} in green revenue",
+                f"High-priority ESG topics: {len(materiality_data.get('high_priority_topics', []))} identified with potential financial impact of ${financial_impact_summary.get('total_projected_impact', 0):,.0f}"
+            ]
+        }
+    }
+
 # Double Materiality Assessment Routes
 @api_router.post("/materiality", response_model=MaterialityAssessment)
 async def create_materiality_assessment(input: MaterialityAssessmentCreate):
