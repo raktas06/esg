@@ -1170,23 +1170,65 @@ function App() {
               </div>
 
               {dashboardData && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(canvasProgress).map(([section, progress]) => (
-                    <Card key={section}>
-                      <CardContent className="p-4">
-                        <div className="text-center">
-                          <h4 className="font-medium text-gray-900 mb-2">
-                            {CANVAS_SECTIONS[section]?.title}
-                          </h4>
-                          <div className="text-2xl font-bold text-blue-600 mb-2">
-                            {Math.round(progress)}%
+                <Card className="mt-8">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Activity className="h-5 w-5 mr-2" />
+                      Quick Report Preview
+                    </CardTitle>
+                    <CardDescription>Preview your ESG performance with sample report sections</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Object.entries(canvasProgress).map(([section, progress]) => (
+                        <Card key={section} className="bg-gray-50">
+                          <CardContent className="p-4">
+                            <div className="text-center">
+                              <h4 className="font-medium text-gray-900 mb-2 text-sm">
+                                {CANVAS_SECTIONS[section]?.title}
+                              </h4>
+                              <div className="text-xl font-bold text-blue-600 mb-2">
+                                {Math.round(progress)}%
+                              </div>
+                              <Progress value={progress} className="h-1.5" />
+                              <p className="text-xs text-gray-500 mt-2">
+                                {dashboardData.canvas_completion[section]?.answered || 0} / {dashboardData.canvas_completion[section]?.total || 0} completed
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-start space-x-3">
+                        <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-blue-800">Reports Available</h4>
+                          <p className="text-sm text-blue-700 mt-1">
+                            Your HTML reports include comprehensive analysis, ESG scoring, canvas section breakdowns, 
+                            and actionable recommendations based on {dashboardData.answered_questions} answered questions.
+                          </p>
+                          <div className="mt-3 flex space-x-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/comprehensive`, '_blank')}
+                            >
+                              View Full Report
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/executive`, '_blank')}
+                            >
+                              Executive Summary
+                            </Button>
                           </div>
-                          <Progress value={progress} className="h-2" />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </TabsContent>
           </Tabs>
