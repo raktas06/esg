@@ -236,37 +236,129 @@ class ESGAPITester:
         
         return success, response
 
-    def test_html_executive_report(self):
-        """Test executive summary HTML report generation"""
+    def test_create_materiality_assessment(self):
+        """Test creating materiality assessment"""
         if not self.test_org_id:
-            print("❌ Skipping executive report test - no organization ID")
+            print("❌ Skipping materiality assessment - no organization ID")
             return False, {}
         
-        success, response = self.run_test(
-            "Generate Executive Summary HTML Report",
+        materiality_data = {
+            "organization_id": self.test_org_id,
+            "topic": "Climate Change",
+            "description": "Climate-related risks and opportunities",
+            "esg_category": "environmental",
+            "impact_materiality_score": 8.5,
+            "financial_materiality_score": 7.2,
+            "stakeholder_input": {"investors": 9.0, "customers": 8.0},
+            "impact_justification": "Significant environmental impact",
+            "financial_justification": "Material financial risks from climate change",
+            "ifrs_s1_relevant": True,
+            "ifrs_s2_relevant": True
+        }
+        
+        return self.run_test(
+            "Create Materiality Assessment",
+            "POST",
+            "materiality",
+            200,
+            data=materiality_data
+        )
+
+    def test_get_materiality_matrix(self):
+        """Test materiality matrix endpoint"""
+        if not self.test_org_id:
+            print("❌ Skipping materiality matrix - no organization ID")
+            return False, {}
+        
+        return self.run_test(
+            "Get Materiality Matrix",
             "GET",
-            f"reports/html/{self.test_org_id}/executive",
+            f"materiality/{self.test_org_id}/matrix",
             200
         )
+
+    def test_create_financial_impact(self):
+        """Test creating financial impact assessment"""
+        if not self.test_org_id:
+            print("❌ Skipping financial impact - no organization ID")
+            return False, {}
         
-        # For HTML response, check if it contains expected HTML elements
-        if success:
-            try:
-                # Make the actual request to check HTML content
-                url = f"{self.api_url}/reports/html/{self.test_org_id}/executive"
-                html_response = requests.get(url)
-                if html_response.status_code == 200:
-                    html_content = html_response.text
-                    if "ESG Executive Summary" in html_content and "<!DOCTYPE html>" in html_content:
-                        print("   ✅ Executive HTML report contains expected content")
-                        print(f"   HTML length: {len(html_content)} characters")
-                    else:
-                        print("   ⚠️ Executive HTML report may be missing expected content")
-                        print(f"   Content preview: {html_content[:200]}...")
-            except Exception as e:
-                print(f"   ⚠️ Could not verify HTML content: {e}")
+        financial_data = {
+            "organization_id": self.test_org_id,
+            "esg_topic": "Climate Change",
+            "impact_type": "cost_impact",
+            "financial_metric": "OPEX",
+            "current_value": 1000000,
+            "projected_value": 1200000,
+            "time_horizon": "Medium-term (3-5 years)",
+            "confidence_level": "High",
+            "assumptions": ["Carbon pricing implementation", "Regulatory changes"],
+            "ifrs_standard_reference": "IFRS S2-21",
+            "accounting_treatment": "Operating expense recognition",
+            "disclosure_requirement": True
+        }
         
-        return success, response
+        return self.run_test(
+            "Create Financial Impact Assessment",
+            "POST",
+            "financial-impact",
+            200,
+            data=financial_data
+        )
+
+    def test_get_financial_impact_summary(self):
+        """Test financial impact summary endpoint"""
+        if not self.test_org_id:
+            print("❌ Skipping financial impact summary - no organization ID")
+            return False, {}
+        
+        return self.run_test(
+            "Get Financial Impact Summary",
+            "GET",
+            f"financial-impact/{self.test_org_id}/summary",
+            200
+        )
+
+    def test_create_ifrs_mapping(self):
+        """Test creating IFRS mapping"""
+        if not self.test_org_id:
+            print("❌ Skipping IFRS mapping - no organization ID")
+            return False, {}
+        
+        ifrs_data = {
+            "id": "test-ifrs-mapping-001",
+            "organization_id": self.test_org_id,
+            "ifrs_standard": "IFRS_S2",
+            "disclosure_requirement": "Climate-related financial disclosures",
+            "esg_topic": "Climate Change",
+            "financial_statement_line_item": "Operating Expenses",
+            "quantitative_disclosure": 200000,
+            "qualitative_disclosure": "Climate transition costs impact operations",
+            "compliance_status": "in_progress",
+            "gap_analysis": "Need more detailed carbon accounting",
+            "remediation_plan": "Implement carbon tracking system"
+        }
+        
+        return self.run_test(
+            "Create IFRS Mapping",
+            "POST",
+            "ifrs-mapping",
+            200,
+            data=ifrs_data
+        )
+
+    def test_get_ifrs_compliance_status(self):
+        """Test IFRS compliance status endpoint"""
+        if not self.test_org_id:
+            print("❌ Skipping IFRS compliance - no organization ID")
+            return False, {}
+        
+        return self.run_test(
+            "Get IFRS Compliance Status",
+            "GET",
+            f"ifrs-mapping/{self.test_org_id}/compliance-status",
+            200
+        )
 
 def main():
     print("🚀 Starting Comprehensive ESG API Testing")
