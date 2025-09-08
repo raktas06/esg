@@ -2019,18 +2019,247 @@ async def initialize_comprehensive_sample_data():
             impact_mongo_data = prepare_for_mongo(impact_obj.dict())
             await db.financial_impacts.insert_one(impact_mongo_data)
     
+    # Create sample financial statements data
+    financial_statements_data = {
+        "balance_sheet": [
+            {
+                "line_item_code": "1001",
+                "line_item_name": "Cash and Cash Equivalents",
+                "category": "Assets",
+                "subcategory": "Current Assets",
+                "amount": 5000000,
+                "ias_ifrs_reference": "IAS 1.54",
+                "esg_related": False
+            },
+            {
+                "line_item_code": "1010",
+                "line_item_name": "Green Technology Investments",
+                "category": "Assets", 
+                "subcategory": "Non-current Assets",
+                "amount": 15000000,
+                "ias_ifrs_reference": "IAS 16.6",
+                "esg_related": True,
+                "esg_impact_description": "Investments in renewable energy infrastructure and sustainable technology"
+            },
+            {
+                "line_item_code": "2001",
+                "line_item_name": "Trade Payables",
+                "category": "Liabilities",
+                "subcategory": "Current Liabilities", 
+                "amount": 3000000,
+                "ias_ifrs_reference": "IAS 1.54",
+                "esg_related": False
+            },
+            {
+                "line_item_code": "2010",
+                "line_item_name": "Environmental Provisions",
+                "category": "Liabilities",
+                "subcategory": "Non-current Liabilities",
+                "amount": 2000000,
+                "ias_ifrs_reference": "IAS 37.14",
+                "esg_related": True,
+                "esg_impact_description": "Provisions for environmental remediation and carbon offset obligations"
+            },
+            {
+                "line_item_code": "3001",
+                "line_item_name": "Retained Earnings",
+                "category": "Equity",
+                "subcategory": "Retained Earnings",
+                "amount": 25000000,
+                "ias_ifrs_reference": "IAS 1.54",
+                "esg_related": False
+            }
+        ],
+        "income_statement": [
+            {
+                "line_item_code": "4001",
+                "line_item_name": "Revenue from Sustainable Products",
+                "category": "Revenue",
+                "amount": 50000000,
+                "ias_ifrs_reference": "IFRS 15.47",
+                "esg_related": True,
+                "esg_impact_description": "Revenue from environmentally sustainable product lines",
+                "sustainability_adjustment": 0
+            },
+            {
+                "line_item_code": "4002",
+                "line_item_name": "Traditional Product Revenue",
+                "category": "Revenue",
+                "amount": 30000000,
+                "ias_ifrs_reference": "IFRS 15.47",
+                "esg_related": False
+            },
+            {
+                "line_item_code": "5001",
+                "line_item_name": "Cost of Sustainable Materials",
+                "category": "Cost of Sales",
+                "amount": 20000000,
+                "ias_ifrs_reference": "IAS 2.36",
+                "esg_related": True,
+                "esg_impact_description": "Higher costs for sustainable and ethically sourced materials"
+            },
+            {
+                "line_item_code": "6001",
+                "line_item_name": "ESG Program Expenses",
+                "category": "Operating Expenses",
+                "amount": 5000000,
+                "ias_ifrs_reference": "IAS 1.99",
+                "esg_related": True,
+                "esg_impact_description": "Costs related to sustainability initiatives, employee training, and compliance"
+            },
+            {
+                "line_item_code": "6002",
+                "line_item_name": "Traditional Operating Expenses",
+                "category": "Operating Expenses",
+                "amount": 35000000,
+                "ias_ifrs_reference": "IAS 1.99",
+                "esg_related": False
+            }
+        ],
+        "cash_flow": [
+            {
+                "line_item_code": "7001",
+                "line_item_name": "Cash from Operations",
+                "category": "Operating",
+                "amount": 18000000,
+                "ias_ifrs_reference": "IAS 7.18",
+                "esg_related": False
+            },
+            {
+                "line_item_code": "7010",
+                "line_item_name": "ESG-related Operating Cash Flow",
+                "category": "Operating",
+                "amount": 2000000,
+                "ias_ifrs_reference": "IAS 7.18",
+                "esg_related": True,
+                "esg_impact_description": "Additional cash flows from ESG initiatives and sustainable operations"
+            },
+            {
+                "line_item_code": "8001",
+                "line_item_name": "Capital Expenditure - Green Technology",
+                "category": "Investing",
+                "amount": -12000000,
+                "ias_ifrs_reference": "IAS 7.16",
+                "esg_related": True,
+                "esg_impact_description": "Investments in renewable energy and sustainable technology infrastructure"
+            },
+            {
+                "line_item_code": "9001",
+                "line_item_name": "Green Bond Proceeds",
+                "category": "Financing",
+                "amount": 10000000,
+                "ias_ifrs_reference": "IAS 7.17",
+                "esg_related": True,
+                "esg_impact_description": "Proceeds from green bonds issued for sustainability projects"
+            }
+        ]
+    }
+    
+    # Insert financial statements for each organization
+    for org in created_orgs:
+        reporting_period = "2023-12-31"
+        
+        # Insert balance sheet items
+        for bs_item in financial_statements_data["balance_sheet"]:
+            bs_item["organization_id"] = org.id
+            bs_item["reporting_period"] = reporting_period
+            bs_item["currency"] = org.base_currency
+            bs_obj = BalanceSheetLineItem(**bs_item)
+            bs_data = prepare_for_mongo(bs_obj.dict())
+            await db.balance_sheet_items.insert_one(bs_data)
+        
+        # Insert income statement items
+        for is_item in financial_statements_data["income_statement"]:
+            is_item["organization_id"] = org.id
+            is_item["reporting_period"] = reporting_period
+            is_item["currency"] = org.base_currency
+            is_obj = IncomeStatementLineItem(**is_item)
+            is_data = prepare_for_mongo(is_obj.dict())
+            await db.income_statement_items.insert_one(is_data)
+        
+        # Insert cash flow items
+        for cf_item in financial_statements_data["cash_flow"]:
+            cf_item["organization_id"] = org.id
+            cf_item["reporting_period"] = reporting_period
+            cf_item["currency"] = org.base_currency
+            cf_obj = CashFlowLineItem(**cf_item)
+            cf_data = prepare_for_mongo(cf_obj.dict())
+            await db.cash_flow_items.insert_one(cf_data)
+    
+    # Create sample financial ratios
+    financial_ratios_data = [
+        {
+            "ratio_name": "Current Ratio",
+            "ratio_category": "Liquidity",
+            "ratio_value": 1.67,
+            "benchmark_value": 1.50,
+            "industry_average": 1.45,
+            "esg_influenced": True,
+            "calculation_method": "Current Assets / Current Liabilities",
+            "interpretation": "Strong liquidity position enhanced by ESG-related sustainable investments"
+        },
+        {
+            "ratio_name": "ESG Revenue Ratio",
+            "ratio_category": "ESG",
+            "ratio_value": 62.5,
+            "benchmark_value": 50.0,
+            "industry_average": 35.0,
+            "esg_influenced": True,
+            "calculation_method": "ESG Revenue / Total Revenue * 100",
+            "interpretation": "Strong sustainability focus with majority of revenue from sustainable products"
+        },
+        {
+            "ratio_name": "Return on Assets",
+            "ratio_category": "Profitability",
+            "ratio_value": 12.5,
+            "benchmark_value": 10.0,
+            "industry_average": 8.5,
+            "esg_influenced": True,
+            "calculation_method": "Net Income / Total Assets * 100",
+            "interpretation": "Above-average profitability potentially supported by ESG initiatives"
+        },
+        {
+            "ratio_name": "Debt to Equity Ratio",
+            "ratio_category": "Leverage",
+            "ratio_value": 0.20,
+            "benchmark_value": 0.30,
+            "industry_average": 0.40,
+            "esg_influenced": False,
+            "calculation_method": "Total Debt / Total Equity",
+            "interpretation": "Conservative debt levels providing financial stability for ESG investments"
+        }
+    ]
+    
+    for org in created_orgs:
+        for ratio_data in financial_ratios_data:
+            ratio_data["organization_id"] = org.id
+            ratio_data["reporting_period"] = "2023-12-31"
+            ratio_obj = FinancialRatio(**ratio_data)
+            ratio_mongo_data = prepare_for_mongo(ratio_obj.dict())
+            await db.financial_ratios.insert_one(ratio_mongo_data)
+    
     return {
-        "message": f"Initialized {len(comprehensive_questions)} enhanced questions with double materiality and IFRS integration, {len(sample_orgs)} organizations, {len(materiality_topics)} materiality topics per org, and {len(financial_impacts)} financial impacts per org",
+        "message": f"Initialized comprehensive ESG platform with financial statements integration: {len(comprehensive_questions)} enhanced questions, {len(sample_orgs)} organizations with complete financial data, {len(materiality_topics)} materiality topics, {len(financial_impacts)} financial impacts, and {len(financial_ratios_data)} financial ratios per organization",
         "questions_count": len(comprehensive_questions),
         "organizations_created": len(sample_orgs),
         "materiality_topics_per_org": len(materiality_topics),
         "financial_impacts_per_org": len(financial_impacts),
+        "financial_statements_created": {
+            "balance_sheet_items": len(financial_statements_data["balance_sheet"]),
+            "income_statement_items": len(financial_statements_data["income_statement"]),
+            "cash_flow_items": len(financial_statements_data["cash_flow"]),
+            "financial_ratios": len(financial_ratios_data)
+        },
         "esg_categories": ["Environmental", "Social", "Governance"],
-        "standards_covered": ["GRI", "EFRAG", "IFRS S1", "IFRS S2", "SASB", "TCFD"],
+        "standards_covered": ["GRI", "EFRAG", "IFRS S1", "IFRS S2", "SASB", "TCFD", "IAS"],
         "features": [
             "Double Materiality Assessment",
             "Financial Impact Analysis", 
             "IFRS S1/S2 Compliance Mapping",
+            "IAS/IFRS Financial Statements",
+            "ESG-Financial Integration",
+            "Integrated Reporting",
+            "Financial Ratio Analysis",
             "Enhanced HTML Reports",
             "Advanced Analytics Dashboard"
         ]
