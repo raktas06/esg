@@ -1985,13 +1985,55 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Uploaded Reports List - Placeholder */}
+                  {/* Uploaded Reports List */}
                   <div className="mt-6 pt-6 border-t border-gray-200">
                     <h4 className="font-semibold text-gray-900 mb-4">Recent Uploads</h4>
-                    <div className="text-center py-8 text-gray-500">
-                      <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                      <p>No reports uploaded yet. Upload your first ESG report to get started.</p>
-                    </div>
+                    {uploadedReports.length > 0 ? (
+                      <div className="space-y-3">
+                        {uploadedReports.slice(0, 5).map((report) => (
+                          <div key={report.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <FileText className="h-5 w-5 text-blue-600" />
+                              <div>
+                                <div className="font-medium text-gray-900">{report.file_name}</div>
+                                <div className="text-sm text-gray-500">
+                                  Uploaded {new Date(report.upload_date).toLocaleDateString()}
+                                  {report.processed && (
+                                    <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Processed
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              {report.processed && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      const response = await axios.get(`${API}/reports/comparison/${report.id}`);
+                                      alert(`Comparison Results:\n\nMetrics Extracted: ${response.data.summary.total_metrics_extracted}\nCompliance References: ${response.data.summary.compliance_references_found}\nRecommendations: ${response.data.summary.recommendations_count}`);
+                                    } catch (error) {
+                                      alert('Error loading comparison data');
+                                    }
+                                  }}
+                                >
+                                  View Analysis
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                        <p>No reports uploaded yet. Upload your first ESG report to get started.</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
