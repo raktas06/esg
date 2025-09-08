@@ -134,6 +134,7 @@ function App() {
   const [ifrsComplianceData, setIFRSComplianceData] = useState(null);
   const [financialStatementsData, setFinancialStatementsData] = useState(null);
   const [integratedReportData, setIntegratedReportData] = useState(null);
+  const [uploadedReports, setUploadedReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCanvasSection, setSelectedCanvasSection] = useState(null);
 
