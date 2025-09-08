@@ -271,24 +271,37 @@ function App() {
   };
 
   const createOrganization = async () => {
+    if (!newOrgForm.name.trim()) {
+      alert('Organization name is required');
+      return;
+    }
+
     try {
       const orgData = { ...newOrgForm };
       if (orgData.employee_count) {
         orgData.employee_count = parseInt(orgData.employee_count);
       }
       
+      console.log('Creating organization with data:', orgData);
       const response = await axios.post(`${API}/organizations`, orgData);
+      console.log('Organization created successfully:', response.data);
+      
       setOrganizations([...organizations, response.data]);
       setSelectedOrg(response.data);
       setNewOrgForm({ 
         name: '', industry: '', size: '', country: '', headquarters: '', 
         website: '', employee_count: '', annual_revenue: '', stock_symbol: '' 
       });
+      
+      // Close dialog by triggering a page refresh or state update
+      alert('Organization created successfully!');
       setCurrentView('dashboard');
       await loadAssessments(response.data.id);
       await loadDashboardData(response.data.id);
+      
     } catch (error) {
       console.error('Error creating organization:', error);
+      alert(`Error creating organization: ${error.response?.data?.detail || error.message}`);
     }
   };
 
