@@ -120,7 +120,144 @@ class IASStandard(str, Enum):
     IAS_37 = "IAS_37"  # Provisions, Contingent Liabilities and Contingent Assets
     IAS_38 = "IAS_38"  # Intangible Assets
 
-# Enhanced Models with Double Materiality and Financial Integration
+# Enhanced Financial Statement Models
+class BalanceSheetLineItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    reporting_period: str  # e.g., "2023-12-31"
+    line_item_code: str  # e.g., "1001" for Cash and Cash Equivalents
+    line_item_name: str
+    category: str  # Assets, Liabilities, Equity
+    subcategory: str  # Current Assets, Non-current Assets, etc.
+    amount: float
+    currency: str = "USD"
+    ias_ifrs_reference: Optional[str] = None  # e.g., "IAS 1.54"
+    esg_related: bool = False
+    esg_impact_description: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class IncomeStatementLineItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    reporting_period: str  # e.g., "2023-12-31"
+    line_item_code: str
+    line_item_name: str
+    category: str  # Revenue, Cost of Sales, Operating Expenses, etc.
+    amount: float
+    currency: str = "USD"
+    ias_ifrs_reference: Optional[str] = None
+    esg_related: bool = False
+    esg_impact_description: Optional[str] = None
+    sustainability_adjustment: Optional[float] = None  # ESG-related adjustments
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CashFlowLineItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    reporting_period: str
+    line_item_code: str
+    line_item_name: str
+    category: str  # Operating, Investing, Financing
+    amount: float
+    currency: str = "USD"
+    ias_ifrs_reference: Optional[str] = None  # e.g., "IAS 7.18"
+    esg_related: bool = False
+    esg_impact_description: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FinancialStatement(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    statement_type: FinancialStatementType
+    reporting_period: str
+    period_end_date: datetime
+    currency: str = "USD"
+    preparation_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    approved_by: Optional[str] = None
+    audit_status: str = "unaudited"  # unaudited, reviewed, audited
+    ias_ifrs_compliant: bool = True
+    esg_integrated: bool = False
+    notes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FinancialRatio(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    reporting_period: str
+    ratio_name: str
+    ratio_category: str  # Liquidity, Profitability, Leverage, Efficiency, ESG
+    ratio_value: float
+    benchmark_value: Optional[float] = None
+    industry_average: Optional[float] = None
+    esg_influenced: bool = False
+    calculation_method: str
+    interpretation: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ESGFinancialImpactRecord(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    reporting_period: str
+    esg_topic: str
+    financial_statement_type: FinancialStatementType
+    line_item_affected: str
+    impact_amount: float
+    impact_type: str  # positive, negative, neutral
+    confidence_level: str  # High, Medium, Low
+    ias_ifrs_treatment: str  # How it's treated under IAS/IFRS
+    disclosure_note: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Create models for input
+class BalanceSheetCreate(BaseModel):
+    organization_id: str
+    reporting_period: str
+    line_item_code: str
+    line_item_name: str
+    category: str
+    subcategory: str
+    amount: float
+    currency: str = "USD"
+    ias_ifrs_reference: Optional[str] = None
+    esg_related: bool = False
+    esg_impact_description: Optional[str] = None
+
+class IncomeStatementCreate(BaseModel):
+    organization_id: str
+    reporting_period: str
+    line_item_code: str
+    line_item_name: str
+    category: str
+    amount: float
+    currency: str = "USD"
+    ias_ifrs_reference: Optional[str] = None
+    esg_related: bool = False
+    esg_impact_description: Optional[str] = None
+    sustainability_adjustment: Optional[float] = None
+
+class CashFlowCreate(BaseModel):
+    organization_id: str
+    reporting_period: str
+    line_item_code: str
+    line_item_name: str
+    category: str
+    amount: float
+    currency: str = "USD"
+    ias_ifrs_reference: Optional[str] = None
+    esg_related: bool = False
+    esg_impact_description: Optional[str] = None
+
+class FinancialRatioCreate(BaseModel):
+    organization_id: str
+    reporting_period: str
+    ratio_name: str
+    ratio_category: str
+    ratio_value: float
+    benchmark_value: Optional[float] = None
+    industry_average: Optional[float] = None
+    esg_influenced: bool = False
+    calculation_method: str
+    interpretation: Optional[str] = None
 class MaterialityAssessment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     organization_id: str
