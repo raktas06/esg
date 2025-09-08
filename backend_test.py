@@ -360,6 +360,142 @@ class ESGAPITester:
             200
         )
 
+    def test_create_balance_sheet_item(self):
+        """Test creating balance sheet line item"""
+        if not self.test_org_id:
+            print("❌ Skipping balance sheet - no organization ID")
+            return False, {}
+        
+        balance_sheet_data = {
+            "organization_id": self.test_org_id,
+            "reporting_period": "2023-12-31",
+            "line_item_code": "1001",
+            "line_item_name": "Cash and Cash Equivalents",
+            "category": "Assets",
+            "subcategory": "Current Assets",
+            "amount": 5000000,
+            "currency": "USD",
+            "ias_ifrs_reference": "IAS 1.54",
+            "esg_related": True,
+            "esg_impact_description": "Green bonds and sustainable investments"
+        }
+        
+        return self.run_test(
+            "Create Balance Sheet Item",
+            "POST",
+            "financial-statements/balance-sheet",
+            200,
+            data=balance_sheet_data
+        )
+
+    def test_create_income_statement_item(self):
+        """Test creating income statement line item"""
+        if not self.test_org_id:
+            print("❌ Skipping income statement - no organization ID")
+            return False, {}
+        
+        income_data = {
+            "organization_id": self.test_org_id,
+            "reporting_period": "2023-12-31",
+            "line_item_code": "4001",
+            "line_item_name": "Revenue from Sustainable Products",
+            "category": "Revenue",
+            "amount": 25000000,
+            "currency": "USD",
+            "ias_ifrs_reference": "IFRS 15.47",
+            "esg_related": True,
+            "esg_impact_description": "Revenue from environmentally friendly products",
+            "sustainability_adjustment": 2000000
+        }
+        
+        return self.run_test(
+            "Create Income Statement Item",
+            "POST",
+            "financial-statements/income-statement",
+            200,
+            data=income_data
+        )
+
+    def test_create_cash_flow_item(self):
+        """Test creating cash flow line item"""
+        if not self.test_org_id:
+            print("❌ Skipping cash flow - no organization ID")
+            return False, {}
+        
+        cash_flow_data = {
+            "organization_id": self.test_org_id,
+            "reporting_period": "2023-12-31",
+            "line_item_code": "6001",
+            "line_item_name": "Cash from ESG Investments",
+            "category": "Investing",
+            "amount": -3000000,
+            "currency": "USD",
+            "ias_ifrs_reference": "IAS 7.16",
+            "esg_related": True,
+            "esg_impact_description": "Investment in renewable energy infrastructure"
+        }
+        
+        return self.run_test(
+            "Create Cash Flow Item",
+            "POST",
+            "financial-statements/cash-flow",
+            200,
+            data=cash_flow_data
+        )
+
+    def test_create_financial_ratio(self):
+        """Test creating financial ratio"""
+        if not self.test_org_id:
+            print("❌ Skipping financial ratio - no organization ID")
+            return False, {}
+        
+        ratio_data = {
+            "organization_id": self.test_org_id,
+            "reporting_period": "2023-12-31",
+            "ratio_name": "ESG Revenue Ratio",
+            "ratio_category": "ESG",
+            "ratio_value": 0.35,
+            "benchmark_value": 0.25,
+            "industry_average": 0.20,
+            "esg_influenced": True,
+            "calculation_method": "ESG Revenue / Total Revenue",
+            "interpretation": "Strong ESG revenue contribution above industry average"
+        }
+        
+        return self.run_test(
+            "Create Financial Ratio",
+            "POST",
+            "financial-ratios",
+            200,
+            data=ratio_data
+        )
+
+    def test_get_financial_analysis(self):
+        """Test comprehensive financial analysis endpoint"""
+        if not self.test_org_id:
+            print("❌ Skipping financial analysis - no organization ID")
+            return False, {}
+        
+        return self.run_test(
+            "Get Comprehensive Financial Analysis",
+            "GET",
+            f"financial-analysis/{self.test_org_id}",
+            200
+        )
+
+    def test_get_integrated_report(self):
+        """Test integrated ESG-Financial report endpoint"""
+        if not self.test_org_id:
+            print("❌ Skipping integrated report - no organization ID")
+            return False, {}
+        
+        return self.run_test(
+            "Get Integrated ESG-Financial Report",
+            "GET",
+            f"integrated-report/{self.test_org_id}",
+            200
+        )
+
 def main():
     print("🚀 Starting Comprehensive ESG API Testing with Double Materiality & IFRS")
     print("=" * 70)
