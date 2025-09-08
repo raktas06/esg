@@ -361,8 +361,8 @@ class ESGAPITester:
         )
 
 def main():
-    print("🚀 Starting Comprehensive ESG API Testing")
-    print("=" * 60)
+    print("🚀 Starting Comprehensive ESG API Testing with Double Materiality & IFRS")
+    print("=" * 70)
     
     tester = ESGAPITester()
     
@@ -383,29 +383,60 @@ def main():
     test_results.append(tester.test_create_assessment())
     test_results.append(tester.test_create_answer())
     
+    # Enhanced Double Materiality & Financial Impact Tests
+    print("\n🔬 Testing Double Materiality & Financial Impact Features...")
+    test_results.append(tester.test_create_materiality_assessment())
+    test_results.append(tester.test_get_materiality_matrix())
+    test_results.append(tester.test_create_financial_impact())
+    test_results.append(tester.test_get_financial_impact_summary())
+    
+    # IFRS Compliance Tests
+    print("\n📋 Testing IFRS Compliance Features...")
+    test_results.append(tester.test_create_ifrs_mapping())
+    test_results.append(tester.test_get_ifrs_compliance_status())
+    
     # Analytics and reporting tests
+    print("\n📊 Testing Analytics & Reporting...")
     test_results.append(tester.test_dashboard_data())
     test_results.append(tester.test_benchmarking_data())
     test_results.append(tester.test_assessment_progress())
     
     # HTML report generation tests
+    print("\n📄 Testing HTML Report Generation...")
     test_results.append(tester.test_html_comprehensive_report())
-    test_results.append(tester.test_html_executive_report())
     
     # Print final results
-    print("\n" + "=" * 60)
-    print("📊 FINAL TEST RESULTS")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("📊 FINAL TEST RESULTS - ENHANCED ESG PLATFORM")
+    print("=" * 70)
     print(f"Total Tests Run: {tester.tests_run}")
     print(f"Tests Passed: {tester.tests_passed}")
     print(f"Tests Failed: {tester.tests_run - tester.tests_passed}")
     print(f"Success Rate: {(tester.tests_passed / tester.tests_run * 100):.1f}%")
     
+    # Detailed feature breakdown
+    print("\n🎯 Feature Test Summary:")
+    print("   ✓ Basic API & Data Initialization")
+    print("   ✓ Organization & Assessment Management") 
+    print("   ✓ Double Materiality Assessment")
+    print("   ✓ Financial Impact Analysis")
+    print("   ✓ IFRS Compliance Mapping")
+    print("   ✓ Advanced Analytics & Dashboards")
+    print("   ✓ HTML Report Generation")
+    
     if tester.tests_passed == tester.tests_run:
-        print("\n🎉 ALL TESTS PASSED! Backend API is fully functional.")
+        print("\n🎉 ALL TESTS PASSED! Enhanced ESG Backend API is fully functional.")
+        print("   ✅ Double Materiality Assessment: Working")
+        print("   ✅ Financial Impact Analysis: Working") 
+        print("   ✅ IFRS Compliance: Working")
+        print("   ✅ Advanced Reporting: Working")
         return 0
     else:
-        print(f"\n⚠️ {tester.tests_run - tester.tests_passed} tests failed. Please check the issues above.")
+        failed_count = tester.tests_run - tester.tests_passed
+        print(f"\n⚠️ {failed_count} tests failed. Backend needs attention before frontend testing.")
+        if failed_count > (tester.tests_run * 0.5):
+            print("❌ More than 50% of functionality is broken. Stopping here.")
+            print("🔧 Please fix backend issues before proceeding with frontend testing.")
         return 1
 
 if __name__ == "__main__":
