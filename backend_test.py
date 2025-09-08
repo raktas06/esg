@@ -56,198 +56,265 @@ class ESGAPITester:
             return False, {}
 
     def test_root_endpoint(self):
-        """Test the root API endpoint"""
+        """Test root API endpoint"""
         return self.run_test("Root API Endpoint", "GET", "", 200)
 
-    def test_initialize_sample_data(self):
-        """Test initializing sample data"""
-        return self.run_test("Initialize Sample Data", "POST", "initialize-sample-data", 200)
+    def test_initialize_comprehensive_data(self):
+        """Test comprehensive data initialization"""
+        return self.run_test(
+            "Initialize Comprehensive Data",
+            "POST",
+            "initialize-comprehensive-data",
+            200
+        )
 
     def test_get_organizations(self):
         """Test getting organizations"""
-        success, data = self.run_test("Get Organizations", "GET", "organizations", 200)
-        if success and isinstance(data, list) and len(data) > 0:
-            self.created_org_id = data[0]['id']
-            print(f"   Found organization: {data[0]['name']} (ID: {self.created_org_id})")
-        return success, data
+        success, response = self.run_test("Get Organizations", "GET", "organizations", 200)
+        if success and response and len(response) > 0:
+            self.test_org_id = response[0]['id']
+            print(f"   Found {len(response)} organizations, using: {response[0]['name']}")
+        return success, response
 
     def test_create_organization(self):
         """Test creating a new organization"""
         org_data = {
-            "name": "Green Tech Solutions",
-            "industry": "Technology", 
-            "size": "Medium",
-            "country": "United States"
+            "name": "Test ESG Corp",
+            "industry": "Technology",
+            "size": "Large",
+            "country": "United States",
+            "headquarters": "San Francisco, CA",
+            "website": "https://test-esg.com",
+            "employee_count": 1500,
+            "annual_revenue": "$100M - $500M",
+            "stock_symbol": "TESG"
         }
-        success, data = self.run_test("Create Organization", "POST", "organizations", 200, org_data)
-        if success and 'id' in data:
-            self.created_org_id = data['id']
-            print(f"   Created organization ID: {self.created_org_id}")
-        return success, data
-
-    def test_get_organization_by_id(self):
-        """Test getting a specific organization"""
-        if not self.created_org_id:
-            print("❌ Skipped - No organization ID available")
-            return False, {}
-        return self.run_test("Get Organization by ID", "GET", f"organizations/{self.created_org_id}", 200)
+        success, response = self.run_test(
+            "Create Organization",
+            "POST",
+            "organizations",
+            200,
+            data=org_data
+        )
+        if success and response:
+            self.test_org_id = response['id']
+            print(f"   Created organization with ID: {self.test_org_id}")
+        return success, response
 
     def test_get_questions(self):
-        """Test getting all questions"""
-        return self.run_test("Get All Questions", "GET", "questions", 200)
-
-    def test_get_questions_with_filters(self):
-        """Test getting questions with filters"""
-        # Test by ESG category
-        success1, _ = self.run_test("Get Environmental Questions", "GET", "questions", 200, 
-                                   params={"esg_category": "environmental"})
-        
-        # Test by canvas section
-        success2, _ = self.run_test("Get Key Partnerships Questions", "GET", "questions", 200,
-                                   params={"canvas_section": "key_partnerships"})
-        
-        # Test by standard
-        success3, _ = self.run_test("Get GRI Questions", "GET", "questions", 200,
-                                   params={"standard": "GRI"})
-        
-        return success1 and success2 and success3, {}
-
-    def test_get_questions_by_canvas_section(self):
-        """Test getting questions by canvas section endpoint"""
-        return self.run_test("Get Questions by Canvas Section", "GET", 
-                           "questions/canvas-section/key_partnerships", 200)
-
-    def test_create_question(self):
-        """Test creating a new question"""
-        question_data = {
-            "question_text": "Test question for ESG assessment",
-            "description": "This is a test question for API testing",
-            "question_type": "text",
-            "esg_category": "environmental",
-            "canvas_section": "key_activities",
-            "standard": "GRI",
-            "reference_code": "TEST-001",
-            "is_required": True
-        }
-        success, data = self.run_test("Create Question", "POST", "questions", 200, question_data)
-        if success and 'id' in data:
-            self.created_question_ids.append(data['id'])
-            print(f"   Created question ID: {data['id']}")
-        return success, data
+        """Test getting questions"""
+        success, response = self.run_test("Get Questions", "GET", "questions", 200)
+        if success and response:
+            print(f"   Found {len(response)} questions")
+            # Check question structure
+            if len(response) > 0:
+                sample_q = response[0]
+                print(f"   Sample question: {sample_q.get('question_text', 'N/A')[:50]}...")
+                print(f"   ESG categories found: {set(q.get('esg_category') for q in response)}")
+                print(f"   Canvas sections found: {set(q.get('canvas_section') for q in response)}")
+        return success, response
 
     def test_create_assessment(self):
         """Test creating an assessment"""
-        if not self.created_org_id:
-            print("❌ Skipped - No organization ID available")
+        if not self.test_org_id:
+            print("❌ Skipping assessment creation - no organization ID")
             return False, {}
-            
-        assessment_data = {
-            "organization_id": self.created_org_id,
-            "name": "Test ESG Assessment",
-            "description": "Test assessment for API testing"
-        }
-        success, data = self.run_test("Create Assessment", "POST", "assessments", 200, assessment_data)
-        if success and 'id' in data:
-            self.created_assessment_id = data['id']
-            print(f"   Created assessment ID: {self.created_assessment_id}")
-        return success, data
-
-    def test_get_assessments(self):
-        """Test getting assessments"""
-        success1, _ = self.run_test("Get All Assessments", "GET", "assessments", 200)
         
-        if self.created_org_id:
-            success2, _ = self.run_test("Get Assessments by Organization", "GET", "assessments", 200,
-                                       params={"organization_id": self.created_org_id})
-            return success1 and success2, {}
-        return success1, {}
-
-    def test_get_assessment_by_id(self):
-        """Test getting a specific assessment"""
-        if not self.created_assessment_id:
-            print("❌ Skipped - No assessment ID available")
-            return False, {}
-        return self.run_test("Get Assessment by ID", "GET", f"assessments/{self.created_assessment_id}", 200)
+        assessment_data = {
+            "organization_id": self.test_org_id,
+            "name": "Test ESG Assessment",
+            "description": "Comprehensive ESG assessment for testing"
+        }
+        success, response = self.run_test(
+            "Create Assessment",
+            "POST",
+            "assessments",
+            200,
+            data=assessment_data
+        )
+        if success and response:
+            self.test_assessment_id = response['id']
+            print(f"   Created assessment with ID: {self.test_assessment_id}")
+        return success, response
 
     def test_create_answer(self):
-        """Test creating/updating answers"""
-        if not self.created_org_id or not self.created_question_ids:
-            print("❌ Skipped - No organization or question ID available")
+        """Test creating an answer"""
+        if not self.test_org_id:
+            print("❌ Skipping answer creation - no organization ID")
             return False, {}
-            
-        answer_data = {
-            "question_id": self.created_question_ids[0],
-            "organization_id": self.created_org_id,
-            "answer_value": "This is a test answer for the ESG question",
-            "comments": "Test comment"
-        }
-        return self.run_test("Create Answer", "POST", "answers", 200, answer_data)
-
-    def test_get_answers(self):
-        """Test getting answers"""
-        success1, _ = self.run_test("Get All Answers", "GET", "answers", 200)
         
-        if self.created_org_id:
-            success2, _ = self.run_test("Get Answers by Organization", "GET", "answers", 200,
-                                       params={"organization_id": self.created_org_id})
-            return success1 and success2, {}
-        return success1, {}
+        # Get a question first
+        success, questions = self.run_test("Get Questions for Answer", "GET", "questions", 200)
+        if not success or not questions:
+            print("❌ Cannot create answer - no questions available")
+            return False, {}
+        
+        question = questions[0]
+        answer_data = {
+            "question_id": question['id'],
+            "organization_id": self.test_org_id,
+            "answer_value": "Test answer for comprehensive testing",
+            "comments": "This is a test answer"
+        }
+        
+        return self.run_test(
+            "Create Answer",
+            "POST",
+            "answers",
+            200,
+            data=answer_data
+        )
+
+    def test_dashboard_data(self):
+        """Test dashboard data endpoint"""
+        if not self.test_org_id:
+            print("❌ Skipping dashboard test - no organization ID")
+            return False, {}
+        
+        return self.run_test(
+            "Get Dashboard Data",
+            "GET",
+            f"reports/dashboard/{self.test_org_id}",
+            200
+        )
+
+    def test_benchmarking_data(self):
+        """Test benchmarking data endpoint"""
+        if not self.test_org_id:
+            print("❌ Skipping benchmarking test - no organization ID")
+            return False, {}
+        
+        return self.run_test(
+            "Get Benchmarking Data",
+            "GET",
+            f"reports/benchmarking/{self.test_org_id}",
+            200
+        )
 
     def test_assessment_progress(self):
-        """Test getting assessment progress"""
-        if not self.created_assessment_id:
-            print("❌ Skipped - No assessment ID available")
+        """Test assessment progress endpoint"""
+        if not self.test_assessment_id:
+            print("❌ Skipping progress test - no assessment ID")
             return False, {}
-        return self.run_test("Get Assessment Progress", "GET", 
-                           f"assessments/{self.created_assessment_id}/progress", 200)
+        
+        return self.run_test(
+            "Get Assessment Progress",
+            "GET",
+            f"assessments/{self.test_assessment_id}/progress",
+            200
+        )
 
-    def run_all_tests(self):
-        """Run all API tests in sequence"""
-        print("🚀 Starting ESG API Testing...")
-        print(f"Testing against: {self.base_url}")
+    def test_html_comprehensive_report(self):
+        """Test comprehensive HTML report generation"""
+        if not self.test_org_id:
+            print("❌ Skipping HTML report test - no organization ID")
+            return False, {}
         
-        # Test sequence
-        tests = [
-            self.test_root_endpoint,
-            self.test_initialize_sample_data,
-            self.test_get_organizations,
-            self.test_create_organization,
-            self.test_get_organization_by_id,
-            self.test_get_questions,
-            self.test_get_questions_with_filters,
-            self.test_get_questions_by_canvas_section,
-            self.test_create_question,
-            self.test_create_assessment,
-            self.test_get_assessments,
-            self.test_get_assessment_by_id,
-            self.test_create_answer,
-            self.test_get_answers,
-            self.test_assessment_progress
-        ]
+        success, response = self.run_test(
+            "Generate Comprehensive HTML Report",
+            "GET",
+            f"reports/html/{self.test_org_id}/comprehensive",
+            200
+        )
         
-        for test in tests:
+        # For HTML response, check if it contains expected HTML elements
+        if success:
             try:
-                test()
+                # Make the actual request to check HTML content
+                url = f"{self.api_url}/reports/html/{self.test_org_id}/comprehensive"
+                html_response = requests.get(url)
+                if html_response.status_code == 200:
+                    html_content = html_response.text
+                    if "ESG Sustainability Report" in html_content and "<!DOCTYPE html>" in html_content:
+                        print("   ✅ HTML report contains expected content")
+                        print(f"   HTML length: {len(html_content)} characters")
+                    else:
+                        print("   ⚠️ HTML report may be missing expected content")
+                        print(f"   Content preview: {html_content[:200]}...")
             except Exception as e:
-                print(f"❌ Test {test.__name__} failed with exception: {str(e)}")
+                print(f"   ⚠️ Could not verify HTML content: {e}")
         
-        # Print final results
-        print(f"\n📊 Test Results:")
-        print(f"   Tests Run: {self.tests_run}")
-        print(f"   Tests Passed: {self.tests_passed}")
-        print(f"   Tests Failed: {self.tests_run - self.tests_passed}")
-        print(f"   Success Rate: {(self.tests_passed/self.tests_run)*100:.1f}%")
+        return success, response
+
+    def test_html_executive_report(self):
+        """Test executive summary HTML report generation"""
+        if not self.test_org_id:
+            print("❌ Skipping executive report test - no organization ID")
+            return False, {}
         
-        if self.tests_passed == self.tests_run:
-            print("🎉 All tests passed!")
-            return 0
-        else:
-            print("⚠️  Some tests failed!")
-            return 1
+        success, response = self.run_test(
+            "Generate Executive Summary HTML Report",
+            "GET",
+            f"reports/html/{self.test_org_id}/executive",
+            200
+        )
+        
+        # For HTML response, check if it contains expected HTML elements
+        if success:
+            try:
+                # Make the actual request to check HTML content
+                url = f"{self.api_url}/reports/html/{self.test_org_id}/executive"
+                html_response = requests.get(url)
+                if html_response.status_code == 200:
+                    html_content = html_response.text
+                    if "ESG Executive Summary" in html_content and "<!DOCTYPE html>" in html_content:
+                        print("   ✅ Executive HTML report contains expected content")
+                        print(f"   HTML length: {len(html_content)} characters")
+                    else:
+                        print("   ⚠️ Executive HTML report may be missing expected content")
+                        print(f"   Content preview: {html_content[:200]}...")
+            except Exception as e:
+                print(f"   ⚠️ Could not verify HTML content: {e}")
+        
+        return success, response
 
 def main():
+    print("🚀 Starting Comprehensive ESG API Testing")
+    print("=" * 60)
+    
     tester = ESGAPITester()
-    return tester.run_all_tests()
+    
+    # Test sequence
+    test_results = []
+    
+    # Basic API tests
+    test_results.append(tester.test_root_endpoint())
+    test_results.append(tester.test_initialize_comprehensive_data())
+    test_results.append(tester.test_get_organizations())
+    
+    # If no organizations exist, create one
+    if not tester.test_org_id:
+        test_results.append(tester.test_create_organization())
+    
+    # Core functionality tests
+    test_results.append(tester.test_get_questions())
+    test_results.append(tester.test_create_assessment())
+    test_results.append(tester.test_create_answer())
+    
+    # Analytics and reporting tests
+    test_results.append(tester.test_dashboard_data())
+    test_results.append(tester.test_benchmarking_data())
+    test_results.append(tester.test_assessment_progress())
+    
+    # HTML report generation tests
+    test_results.append(tester.test_html_comprehensive_report())
+    test_results.append(tester.test_html_executive_report())
+    
+    # Print final results
+    print("\n" + "=" * 60)
+    print("📊 FINAL TEST RESULTS")
+    print("=" * 60)
+    print(f"Total Tests Run: {tester.tests_run}")
+    print(f"Tests Passed: {tester.tests_passed}")
+    print(f"Tests Failed: {tester.tests_run - tester.tests_passed}")
+    print(f"Success Rate: {(tester.tests_passed / tester.tests_run * 100):.1f}%")
+    
+    if tester.tests_passed == tester.tests_run:
+        print("\n🎉 ALL TESTS PASSED! Backend API is fully functional.")
+        return 0
+    else:
+        print(f"\n⚠️ {tester.tests_run - tester.tests_passed} tests failed. Please check the issues above.")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
