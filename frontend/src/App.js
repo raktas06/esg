@@ -1914,10 +1914,14 @@ function App() {
                     {/* Upload Section */}
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-900">Upload ESG Report</h4>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${loading ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}>
+                        {loading ? (
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        ) : (
+                          <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        )}
                         <p className="text-sm text-gray-600 mb-2">
-                          Drop your PDF report here or click to browse
+                          {loading ? 'Processing your ESG report...' : 'Drop your PDF report here or click to browse'}
                         </p>
                         <input
                           type="file"
