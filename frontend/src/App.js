@@ -914,9 +914,9 @@ function App() {
                 </SelectContent>
               </Select>
               
-              <Dialog>
+              <Dialog open={isOrgDialogOpen} onOpenChange={setIsOrgDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">Add Organization</Button>
+                  <Button variant="outline" onClick={() => setIsOrgDialogOpen(true)}>Add Organization</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
