@@ -210,12 +210,14 @@ function App() {
 
   const loadDashboardData = async (orgId) => {
     try {
-      const [dashboardResponse, benchmarkResponse, materialityResponse, financialResponse, ifrsResponse] = await Promise.all([
+      const [dashboardResponse, benchmarkResponse, materialityResponse, financialResponse, ifrsResponse, financialStatementsResponse, integratedResponse] = await Promise.all([
         axios.get(`${API}/reports/dashboard/${orgId}`),
         axios.get(`${API}/reports/benchmarking/${orgId}`),
         axios.get(`${API}/materiality/${orgId}/matrix`),
         axios.get(`${API}/financial-impact/${orgId}/summary`),
-        axios.get(`${API}/ifrs-mapping/${orgId}/compliance-status`)
+        axios.get(`${API}/ifrs-mapping/${orgId}/compliance-status`),
+        axios.get(`${API}/financial-analysis/${orgId}`),
+        axios.get(`${API}/integrated-report/${orgId}`)
       ]);
       
       setDashboardData(dashboardResponse.data);
@@ -223,6 +225,8 @@ function App() {
       setMaterialityData(materialityResponse.data);
       setFinancialImpactData(financialResponse.data);
       setIFRSComplianceData(ifrsResponse.data);
+      setFinancialStatementsData(financialStatementsResponse.data);
+      setIntegratedReportData(integratedResponse.data);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
