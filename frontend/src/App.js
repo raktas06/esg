@@ -1432,11 +1432,64 @@ function App() {
             
             <TabsContent value="reports" className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Reports & Export</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Reports & IFRS Compliance</h2>
                 <p className="text-gray-600 max-w-2xl mx-auto">
-                  Generate comprehensive ESG reports and export data for stakeholders
+                  Generate comprehensive ESG reports with double materiality assessment and IFRS S1/S2 compliance
                 </p>
               </div>
+
+              {/* IFRS Compliance Status */}
+              {ifrsComplianceData && (
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Shield className="h-5 w-5 mr-2" />
+                      IFRS Compliance Status
+                    </CardTitle>
+                    <CardDescription>
+                      Current compliance with IFRS S1 and S2 sustainability disclosure requirements
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{ifrsComplianceData.compliance_percentage.toFixed(0)}%</div>
+                        <div className="text-sm text-gray-600">Overall Compliance</div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{ifrsComplianceData.compliant}</div>
+                        <div className="text-sm text-gray-600">Compliant</div>
+                      </div>
+                      <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                        <div className="text-2xl font-bold text-yellow-600">{ifrsComplianceData.in_progress}</div>
+                        <div className="text-sm text-gray-600">In Progress</div>
+                      </div>
+                      <div className="text-center p-4 bg-red-50 rounded-lg">
+                        <div className="text-2xl font-bold text-red-600">{ifrsComplianceData.non_compliant}</div>
+                        <div className="text-sm text-gray-600">Non-Compliant</div>
+                      </div>
+                    </div>
+                    
+                    {ifrsComplianceData.gaps_identified && ifrsComplianceData.gaps_identified.length > 0 && (
+                      <div className="mt-6">
+                        <h4 className="font-semibold mb-4">Compliance Gaps Identified</h4>
+                        <div className="space-y-3">
+                          {ifrsComplianceData.gaps_identified.slice(0, 3).map((gap, index) => (
+                            <div key={index} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                              <div className="flex justify-between items-start mb-2">
+                                <h5 className="font-medium text-red-800">{gap.ifrs_standard}</h5>
+                                <Badge variant="destructive">Gap</Badge>
+                              </div>
+                              <p className="text-sm text-red-700 mb-1">{gap.requirement}</p>
+                              <p className="text-xs text-red-600">{gap.gap}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card className="hover:shadow-lg transition-shadow">
@@ -1445,7 +1498,7 @@ function App() {
                       <FileText className="h-5 w-5 mr-2" />
                       Comprehensive ESG Report
                     </CardTitle>
-                    <CardDescription>Full sustainability assessment report with all metrics and detailed analysis</CardDescription>
+                    <CardDescription>Full sustainability assessment with double materiality and financial impact analysis</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <Button 
@@ -1454,7 +1507,7 @@ function App() {
                       onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/comprehensive`, '_blank')}
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      View HTML Report
+                      View Enhanced HTML Report
                     </Button>
                     <Button 
                       className="w-full" 
@@ -1508,21 +1561,28 @@ function App() {
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <Globe className="h-5 w-5 mr-2" />
-                      Data Export Options
+                      <Shield className="h-5 w-5 mr-2" />
+                      IFRS S1/S2 Compliance
                     </CardTitle>
-                    <CardDescription>Export raw data and analytics for external analysis</CardDescription>
+                    <CardDescription>Sustainability disclosure compliance report</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <Button 
                       className="w-full" 
                       variant="outline"
+                      disabled
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      IFRS Report (Coming Soon)
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
                       onClick={() => {
-                        // Export dashboard data as JSON
-                        if (dashboardData) {
-                          const dataStr = JSON.stringify(dashboardData, null, 2);
+                        if (ifrsComplianceData) {
+                          const dataStr = JSON.stringify(ifrsComplianceData, null, 2);
                           const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-                          const exportFileDefaultName = `${selectedOrg.name}_ESG_Data.json`;
+                          const exportFileDefaultName = `${selectedOrg.name}_IFRS_Compliance.json`;
                           const linkElement = document.createElement('a');
                           linkElement.setAttribute('href', dataUri);
                           linkElement.setAttribute('download', exportFileDefaultName);
@@ -1531,7 +1591,122 @@ function App() {
                       }}
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Export JSON Data
+                      Export IFRS Data
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Activity className="h-5 w-5 mr-2" />
+                      Double Materiality Report
+                    </CardTitle>
+                    <CardDescription>Materiality assessment with impact and financial analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      disabled
+                    >
+                      <Activity className="h-4 w-4 mr-2" />
+                      Materiality Report (Coming Soon)
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                        if (materialityData) {
+                          const dataStr = JSON.stringify(materialityData, null, 2);
+                          const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                          const exportFileDefaultName = `${selectedOrg.name}_Double_Materiality.json`;
+                          const linkElement = document.createElement('a');
+                          linkElement.setAttribute('href', dataUri);
+                          linkElement.setAttribute('download', exportFileDefaultName);
+                          linkElement.click();
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Materiality Data
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Calculator className="h-5 w-5 mr-2" />
+                      Financial Impact Report
+                    </CardTitle>
+                    <CardDescription>Quantitative ESG financial impact analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      disabled
+                    >
+                      <Calculator className="h-4 w-4 mr-2" />
+                      Financial Report (Coming Soon)
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                        if (financialImpactData) {
+                          const dataStr = JSON.stringify(financialImpactData, null, 2);
+                          const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                          const exportFileDefaultName = `${selectedOrg.name}_Financial_Impact.json`;
+                          const linkElement = document.createElement('a');
+                          linkElement.setAttribute('href', dataUri);
+                          linkElement.setAttribute('download', exportFileDefaultName);
+                          linkElement.click();
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Financial Data
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Globe className="h-5 w-5 mr-2" />
+                      Data Export Options
+                    </CardTitle>
+                    <CardDescription>Export comprehensive data for external analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                        // Export comprehensive dashboard data as JSON
+                        if (dashboardData) {
+                          const comprehensiveData = {
+                            organization: dashboardData.organization,
+                            esg_scores: dashboardData.esg_scores,
+                            materiality_summary: dashboardData.materiality_summary,
+                            financial_summary: dashboardData.financial_summary,
+                            ifrs_compliance: dashboardData.ifrs_compliance,
+                            generated_at: new Date().toISOString()
+                          };
+                          const dataStr = JSON.stringify(comprehensiveData, null, 2);
+                          const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                          const exportFileDefaultName = `${selectedOrg.name}_Comprehensive_ESG_Data.json`;
+                          const linkElement = document.createElement('a');
+                          linkElement.setAttribute('href', dataUri);
+                          linkElement.setAttribute('download', exportFileDefaultName);
+                          linkElement.click();
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export All ESG Data
                     </Button>
                     <Button 
                       className="w-full" 
@@ -1549,59 +1724,64 @@ function App() {
                 <Card className="mt-8">
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <Activity className="h-5 w-5 mr-2" />
-                      Quick Report Preview
+                      <Zap className="h-5 w-5 mr-2" />
+                      Enhanced Report Preview
                     </CardTitle>
-                    <CardDescription>Preview your ESG performance with sample report sections</CardDescription>
+                    <CardDescription>Preview of enhanced ESG performance with double materiality and financial impact</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(canvasProgress).map(([section, progress]) => (
-                        <Card key={section} className="bg-gray-50">
-                          <CardContent className="p-4">
-                            <div className="text-center">
-                              <h4 className="font-medium text-gray-900 mb-2 text-sm">
-                                {CANVAS_SECTIONS[section]?.title}
-                              </h4>
-                              <div className="text-xl font-bold text-blue-600 mb-2">
-                                {Math.round(progress)}%
-                              </div>
-                              <Progress value={progress} className="h-1.5" />
-                              <p className="text-xs text-gray-500 mt-2">
-                                {dashboardData.canvas_completion[section]?.answered || 0} / {dashboardData.canvas_completion[section]?.total || 0} completed
-                              </p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                      <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                        <div className="text-2xl font-bold text-green-600">{dashboardData.esg_scores.environmental.toFixed(1)}</div>
+                        <div className="text-sm text-gray-600">Environmental Score</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
+                        <div className="text-2xl font-bold text-blue-600">{dashboardData.esg_scores.social.toFixed(1)}</div>
+                        <div className="text-sm text-gray-600">Social Score</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+                        <div className="text-2xl font-bold text-purple-600">{dashboardData.esg_scores.governance.toFixed(1)}</div>
+                        <div className="text-sm text-gray-600">Governance Score</div>
+                      </div>
+                      <div className="text-center p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg border border-gray-200">
+                        <div className="text-2xl font-bold text-gray-600">{dashboardData.overall_score.toFixed(1)}</div>
+                        <div className="text-sm text-gray-600">Overall Score</div>
+                      </div>
                     </div>
                     
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-start space-x-3">
-                        <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <div>
-                          <h4 className="font-medium text-blue-800">Reports Available</h4>
-                          <p className="text-sm text-blue-700 mt-1">
-                            Your HTML reports include comprehensive analysis, ESG scoring, canvas section breakdowns, 
-                            and actionable recommendations based on {dashboardData.answered_questions} answered questions.
-                          </p>
-                          <div className="mt-3 flex space-x-2">
-                            <Button 
-                              size="sm" 
-                              onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/comprehensive`, '_blank')}
-                            >
-                              View Full Report
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/executive`, '_blank')}
-                            >
-                              Executive Summary
-                            </Button>
-                          </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <h4 className="font-semibold text-yellow-800 mb-2">Materiality Assessment</h4>
+                        <p className="text-sm text-yellow-700">
+                          {dashboardData.materiality_summary?.high_priority || 0} high-priority topics identified for immediate attention
+                        </p>
                       </div>
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-2">Financial Impact</h4>
+                        <p className="text-sm text-green-700">
+                          ${Math.abs(dashboardData.financial_summary?.total_projected_impact || 0).toLocaleString()} total projected impact
+                        </p>
+                      </div>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <h4 className="font-semibold text-blue-800 mb-2">IFRS Compliance</h4>
+                        <p className="text-sm text-blue-700">
+                          {dashboardData.ifrs_compliance?.compliance_percentage.toFixed(0) || 0}% compliance with sustainability disclosure requirements
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 flex justify-center space-x-4">
+                      <Button 
+                        onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/comprehensive`, '_blank')}
+                      >
+                        View Complete Report
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/executive`, '_blank')}
+                      >
+                        View Executive Summary
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
