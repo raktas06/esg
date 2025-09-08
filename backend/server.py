@@ -766,6 +766,337 @@ CANVAS_SECTIONS = {
 async def root():
     return {"message": "ESG Reporting API v3.0 - Enhanced with Double Materiality & IFRS Integration"}
 
+# Risk Assessment Routes
+@api_router.post("/risk-assessment", response_model=RiskAssessment)
+async def create_risk_assessment(input: RiskAssessmentCreate):
+    risk_dict = input.dict()
+    # Calculate risk score
+    risk_dict["risk_score"] = calculate_risk_score(input.likelihood, input.impact)
+    risk_obj = RiskAssessment(**risk_dict)
+    risk_data = prepare_for_mongo(risk_obj.dict())
+    await db.risk_assessments.insert_one(risk_data)
+    return risk_obj
+
+@api_router.get("/risk-assessment", response_model=List[RiskAssessment])
+async def get_risk_assessments(organization_id: Optional[str] = None, risk_type: Optional[RiskType] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if risk_type:
+        filter_dict["risk_type"] = risk_type
+    
+    risks = await db.risk_assessments.find(filter_dict).to_list(1000)
+    return [RiskAssessment(**parse_from_mongo(risk)) for risk in risks]
+
+@api_router.get("/risk-assessment/{organization_id}/summary")
+async def get_risk_assessment_summary(organization_id: str):
+    """Get comprehensive risk assessment summary"""
+    risks = await db.risk_assessments.find({"organization_id": organization_id}).to_list(1000)
+    
+    summary = {
+        "total_risks": len(risks),
+        "by_type": {},
+        "by_esg_category": {},
+        "by_likelihood": {},
+        "by_impact": {},
+        "by_time_horizon": {},
+        "high_risk_items": [],
+        "ifrs_disclosures_required": [],
+        "average_risk_score": 0,
+        "risk_distribution": {
+            "low": 0,      # 0-30
+            "medium": 0,   # 31-60
+            "high": 0,     # 61-80
+            "critical": 0  # 81-100
+        }
+    }
+    
+    total_score = 0
+    for risk in risks:
+        risk_score = risk.get("risk_score", 0)
+        total_score += risk_score
+        
+        # Categorize by risk level
+        if risk_score <= 30:
+            summary["risk_distribution"]["low"] += 1
+        elif risk_score <= 60:
+            summary["risk_distribution"]["medium"] += 1
+        elif risk_score <= 80:
+            summary["risk_distribution"]["high"] += 1
+        else:
+            summary["risk_distribution"]["critical"] += 1
+        
+        # Group by various categories
+        risk_type = risk["risk_type"]
+        if risk_type not in summary["by_type"]:
+            summary["by_type"][risk_type] = {"count": 0, "avg_score": 0, "total_score": 0}
+        summary["by_type"][risk_type]["count"] += 1
+        summary["by_type"][risk_type]["total_score"] += risk_score
+        summary["by_type"][risk_type]["avg_score"] = summary["by_type"][risk_type]["total_score"] / summary["by_type"][risk_type]["count"]
+        
+        # High-risk items (score > 70)
+        if risk_score > 70:
+            summary["high_risk_items"].append({
+                "title": risk["risk_title"],
+                "score": risk_score,
+                "type": risk["risk_type"],
+                "category": risk["esg_category"]
+            })
+        
+        # IFRS disclosures
+        if risk.get("ifrs_disclosure_required"):
+            summary["ifrs_disclosures_required"].append({
+                "title": risk["risk_title"],
+                "financial_impact": risk.get("potential_financial_impact", 0)
+            })
+    
+    summary["average_risk_score"] = total_score / len(risks) if risks else 0
+    
+    return summary
+
+# Opportunity Assessment Routes
+@api_router.post("/opportunity-assessment", response_model=OpportunityAssessment)
+async def create_opportunity_assessment(input: OpportunityAssessmentCreate):
+    opportunity_dict = input.dict()
+    # Calculate opportunity score using same logic as risk
+    opportunity_dict["opportunity_score"] = calculate_risk_score(input.likelihood, input.impact)
+    opportunity_obj = OpportunityAssessment(**opportunity_dict)
+    opportunity_data = prepare_for_mongo(opportunity_obj.dict())
+    await db.opportunity_assessments.insert_one(opportunity_data)
+    return opportunity_obj
+
+@api_router.get("/opportunity-assessment", response_model=List[OpportunityAssessment])
+async def get_opportunity_assessments(organization_id: Optional[str] = None, opportunity_type: Optional[OpportunityType] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if opportunity_type:
+        filter_dict["opportunity_type"] = opportunity_type
+    
+    opportunities = await db.opportunity_assessments.find(filter_dict).to_list(1000)
+    return [OpportunityAssessment(**parse_from_mongo(opp)) for opp in opportunities]
+
+@api_router.get("/opportunity-assessment/{organization_id}/summary")
+async def get_opportunity_assessment_summary(organization_id: str):
+    """Get comprehensive opportunity assessment summary"""
+    opportunities = await db.opportunity_assessments.find({"organization_id": organization_id}).to_list(1000)
+    
+    summary = {
+        "total_opportunities": len(opportunities),
+        "by_type": {},
+        "by_esg_category": {},
+        "high_potential_opportunities": [],
+        "total_potential_benefit": 0,
+        "total_required_investment": 0,
+        "average_opportunity_score": 0,
+        "average_expected_roi": 0,
+        "opportunity_distribution": {
+            "low": 0,      # 0-30
+            "medium": 0,   # 31-60
+            "high": 0,     # 61-80
+            "exceptional": 0  # 81-100
+        }
+    }
+    
+    total_score = 0
+    total_roi = 0
+    roi_count = 0
+    
+    for opp in opportunities:
+        opp_score = opp.get("opportunity_score", 0)
+        total_score += opp_score
+        
+        # Categorize by opportunity level
+        if opp_score <= 30:
+            summary["opportunity_distribution"]["low"] += 1
+        elif opp_score <= 60:
+            summary["opportunity_distribution"]["medium"] += 1
+        elif opp_score <= 80:
+            summary["opportunity_distribution"]["high"] += 1
+        else:
+            summary["opportunity_distribution"]["exceptional"] += 1
+        
+        # Financial aggregation
+        if opp.get("potential_financial_benefit"):
+            summary["total_potential_benefit"] += opp["potential_financial_benefit"]
+        if opp.get("required_investment"):
+            summary["total_required_investment"] += opp["required_investment"]
+        if opp.get("expected_roi"):
+            total_roi += opp["expected_roi"]
+            roi_count += 1
+        
+        # High-potential opportunities (score > 70)
+        if opp_score > 70:
+            summary["high_potential_opportunities"].append({
+                "title": opp["opportunity_title"],
+                "score": opp_score,
+                "type": opp["opportunity_type"],
+                "benefit": opp.get("potential_financial_benefit", 0),
+                "roi": opp.get("expected_roi", 0)
+            })
+    
+    summary["average_opportunity_score"] = total_score / len(opportunities) if opportunities else 0
+    summary["average_expected_roi"] = total_roi / roi_count if roi_count > 0 else 0
+    
+    return summary
+
+# SWOT Analysis Routes
+@api_router.post("/swot-analysis", response_model=SWOTAnalysis)
+async def create_swot_analysis(input: SWOTAnalysisCreate):
+    swot_dict = input.dict()
+    swot_obj = SWOTAnalysis(**swot_dict)
+    swot_data = prepare_for_mongo(swot_obj.dict())
+    await db.swot_analyses.insert_one(swot_data)
+    return swot_obj
+
+@api_router.get("/swot-analysis", response_model=List[SWOTAnalysis])
+async def get_swot_analyses(organization_id: Optional[str] = None, swot_category: Optional[SWOTCategory] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if swot_category:
+        filter_dict["swot_category"] = swot_category
+    
+    swot_items = await db.swot_analyses.find(filter_dict).to_list(1000)
+    return [SWOTAnalysis(**parse_from_mongo(item)) for item in swot_items]
+
+@api_router.get("/swot-analysis/{organization_id}/matrix")
+async def get_swot_matrix(organization_id: str):
+    """Get SWOT matrix visualization data"""
+    swot_items = await db.swot_analyses.find({"organization_id": organization_id}).to_list(1000)
+    
+    matrix = {
+        "strengths": [],
+        "weaknesses": [],
+        "opportunities": [],
+        "threats": [],
+        "strategic_insights": {
+            "so_strategies": [],  # Strength-Opportunity
+            "wo_strategies": [],  # Weakness-Opportunity
+            "st_strategies": [],  # Strength-Threat
+            "wt_strategies": []   # Weakness-Threat
+        }
+    }
+    
+    for item in swot_items:
+        category = item["swot_category"]
+        swot_data = {
+            "title": item["swot_title"],
+            "description": item["swot_description"],
+            "esg_category": item["esg_category"],
+            "importance": item["strategic_importance"],
+            "insights": item.get("actionable_insights", [])
+        }
+        
+        if category == "strength":
+            matrix["strengths"].append(swot_data)
+        elif category == "weakness":
+            matrix["weaknesses"].append(swot_data)
+        elif category == "opportunity":
+            matrix["opportunities"].append(swot_data)
+        elif category == "threat":
+            matrix["threats"].append(swot_data)
+    
+    # Generate strategic insights (simplified logic)
+    if matrix["strengths"] and matrix["opportunities"]:
+        matrix["strategic_insights"]["so_strategies"].append("Leverage ESG strengths to capitalize on market opportunities")
+    if matrix["weaknesses"] and matrix["opportunities"]:
+        matrix["strategic_insights"]["wo_strategies"].append("Address ESG weaknesses to better pursue opportunities")
+    if matrix["strengths"] and matrix["threats"]:
+        matrix["strategic_insights"]["st_strategies"].append("Use ESG strengths to mitigate external threats")
+    if matrix["weaknesses"] and matrix["threats"]:
+        matrix["strategic_insights"]["wt_strategies"].append("Minimize ESG weaknesses and avoid threats")
+    
+    return matrix
+
+# Scenario Analysis Routes
+@api_router.post("/scenario-analysis", response_model=ScenarioAnalysis)
+async def create_scenario_analysis(input: ScenarioAnalysisCreate):
+    scenario_dict = input.dict()
+    scenario_obj = ScenarioAnalysis(**scenario_dict)
+    scenario_data = prepare_for_mongo(scenario_obj.dict())
+    await db.scenario_analyses.insert_one(scenario_data)
+    return scenario_obj
+
+@api_router.get("/scenario-analysis", response_model=List[ScenarioAnalysis])
+async def get_scenario_analyses(organization_id: Optional[str] = None, scenario_type: Optional[ScenarioType] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if scenario_type:
+        filter_dict["scenario_type"] = scenario_type
+    
+    scenarios = await db.scenario_analyses.find(filter_dict).to_list(1000)
+    return [ScenarioAnalysis(**parse_from_mongo(scenario)) for scenario in scenarios]
+
+@api_router.get("/scenario-analysis/{organization_id}/comparison")
+async def get_scenario_comparison(organization_id: str):
+    """Get scenario analysis comparison data"""
+    scenarios = await db.scenario_analyses.find({"organization_id": organization_id}).to_list(1000)
+    
+    comparison = {
+        "scenarios": [],
+        "comparative_analysis": {
+            "esg_impact_range": {},
+            "financial_impact_range": {},
+            "probability_weighted_outcomes": {},
+            "key_uncertainties": [],
+            "strategic_recommendations": []
+        }
+    }
+    
+    esg_impacts = {"environmental": [], "social": [], "governance": []}
+    financial_impacts = {"revenue": [], "costs": [], "assets": []}
+    
+    for scenario in scenarios:
+        scenario_data = {
+            "name": scenario["scenario_name"],
+            "type": scenario["scenario_type"],
+            "probability": scenario["probability"],
+            "time_horizon": scenario["time_horizon"],
+            "esg_impact": scenario.get("esg_performance_impact", {}),
+            "financial_impact": scenario.get("financial_impact", {}),
+            "key_assumptions": scenario.get("key_assumptions", []),
+            "implications": scenario.get("strategic_implications", [])
+        }
+        comparison["scenarios"].append(scenario_data)
+        
+        # Collect impacts for range analysis
+        for category, impact in scenario.get("esg_performance_impact", {}).items():
+            if category in esg_impacts:
+                esg_impacts[category].append(impact)
+        
+        for metric, impact in scenario.get("financial_impact", {}).items():
+            if metric in financial_impacts:
+                financial_impacts[metric].append(impact)
+    
+    # Calculate ranges
+    for category, impacts in esg_impacts.items():
+        if impacts:
+            comparison["comparative_analysis"]["esg_impact_range"][category] = {
+                "min": min(impacts),
+                "max": max(impacts),
+                "average": sum(impacts) / len(impacts)
+            }
+    
+    for metric, impacts in financial_impacts.items():
+        if impacts:
+            comparison["comparative_analysis"]["financial_impact_range"][metric] = {
+                "min": min(impacts),
+                "max": max(impacts),
+                "average": sum(impacts) / len(impacts)
+            }
+    
+    # Generate strategic recommendations
+    comparison["comparative_analysis"]["strategic_recommendations"] = [
+        "Monitor key ESG indicators across all scenarios",
+        "Develop flexible strategies that perform well across multiple scenarios",
+        "Implement early warning systems for scenario triggers",
+        "Regular scenario review and updates based on emerging trends"
+    ]
+    
+    return comparison
+
 # Financial Statements Routes
 @api_router.post("/financial-statements/balance-sheet", response_model=BalanceSheetLineItem)
 async def create_balance_sheet_item(input: BalanceSheetCreate):
