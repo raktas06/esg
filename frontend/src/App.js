@@ -137,6 +137,7 @@ function App() {
   const [uploadedReports, setUploadedReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCanvasSection, setSelectedCanvasSection] = useState(null);
+  const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false);
 
   // New organization form
   const [newOrgForm, setNewOrgForm] = useState({
