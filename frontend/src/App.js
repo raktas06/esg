@@ -314,9 +314,21 @@ function App() {
     }
   };
 
+  const loadUploadedReports = async () => {
+    if (!selectedOrg) return;
+    
+    try {
+      const response = await axios.get(`${API}/reports/uploaded/${selectedOrg.id}`);
+      setUploadedReports(response.data);
+    } catch (error) {
+      console.error('Error loading uploaded reports:', error);
+    }
+  };
+
   useEffect(() => {
     if (selectedOrg) {
       loadAnswers(selectedOrg.id);
+      loadUploadedReports();
       if (assessments.length > 0) {
         loadCanvasProgress(assessments[0].id);
       }
