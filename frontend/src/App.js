@@ -1069,12 +1069,29 @@ function App() {
                       <FileText className="h-5 w-5 mr-2" />
                       Comprehensive ESG Report
                     </CardTitle>
-                    <CardDescription>Full sustainability assessment report with all metrics</CardDescription>
+                    <CardDescription>Full sustainability assessment report with all metrics and detailed analysis</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Button className="w-full" variant="outline">
+                  <CardContent className="space-y-3">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/comprehensive`, '_blank')}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View HTML Report
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                        const printWindow = window.open(`${API}/reports/html/${selectedOrg.id}/comprehensive`, '_blank');
+                        printWindow.addEventListener('load', () => {
+                          printWindow.print();
+                        });
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-2" />
-                      Generate PDF Report
+                      Print/Save as PDF
                     </Button>
                   </CardContent>
                 </Card>
@@ -1085,12 +1102,29 @@ function App() {
                       <BarChart className="h-5 w-5 mr-2" />
                       Executive Summary
                     </CardTitle>
-                    <CardDescription>High-level overview for stakeholders and board</CardDescription>
+                    <CardDescription>High-level overview for stakeholders and board presentation</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Button className="w-full" variant="outline">
+                  <CardContent className="space-y-3">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => window.open(`${API}/reports/html/${selectedOrg.id}/executive`, '_blank')}
+                    >
+                      <BarChart className="h-4 w-4 mr-2" />
+                      View Executive Summary
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                        const printWindow = window.open(`${API}/reports/html/${selectedOrg.id}/executive`, '_blank');
+                        printWindow.addEventListener('load', () => {
+                          printWindow.print();
+                        });
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-2" />
-                      Export Summary
+                      Print/Save Summary
                     </Button>
                   </CardContent>
                 </Card>
@@ -1099,14 +1133,37 @@ function App() {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Globe className="h-5 w-5 mr-2" />
-                      GRI Standards Report
+                      Data Export Options
                     </CardTitle>
-                    <CardDescription>GRI-compliant sustainability reporting format</CardDescription>
+                    <CardDescription>Export raw data and analytics for external analysis</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Button className="w-full" variant="outline">
+                  <CardContent className="space-y-3">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => {
+                        // Export dashboard data as JSON
+                        if (dashboardData) {
+                          const dataStr = JSON.stringify(dashboardData, null, 2);
+                          const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                          const exportFileDefaultName = `${selectedOrg.name}_ESG_Data.json`;
+                          const linkElement = document.createElement('a');
+                          linkElement.setAttribute('href', dataUri);
+                          linkElement.setAttribute('download', exportFileDefaultName);
+                          linkElement.click();
+                        }
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-2" />
-                      Download GRI Report
+                      Export JSON Data
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      disabled
+                    >
+                      <Globe className="h-4 w-4 mr-2" />
+                      GRI Format (Coming Soon)
                     </Button>
                   </CardContent>
                 </Card>
