@@ -566,6 +566,7 @@ def main():
     print("   ✓ Double Materiality Assessment")
     print("   ✓ Financial Impact Analysis")
     print("   ✓ IFRS Compliance Mapping")
+    print("   ✓ Financial Statements & IAS/IFRS Integration")
     print("   ✓ Advanced Analytics & Dashboards")
     print("   ✓ HTML Report Generation")
     
@@ -574,6 +575,7 @@ def main():
         print("   ✅ Double Materiality Assessment: Working")
         print("   ✅ Financial Impact Analysis: Working") 
         print("   ✅ IFRS Compliance: Working")
+        print("   ✅ Financial Statements Integration: Working")
         print("   ✅ Advanced Reporting: Working")
         return 0
     else:
