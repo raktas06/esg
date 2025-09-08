@@ -2026,17 +2026,17 @@ def get_executive_summary_template():
 </html>"""
 
 # Canvas section definitions
-CANVAS_SECTIONS = {{
-    "key_partnerships": {{"title": "Key Partnerships", "description": "Sustainability partnerships and supplier relationships"}},
-    "key_activities": {{"title": "Key Activities", "description": "Core ESG activities and environmental practices"}},
-    "key_resources": {{"title": "Key Resources", "description": "ESG governance, policies, and sustainable resources"}},
-    "value_propositions": {{"title": "Value Propositions", "description": "ESG value creation and sustainability benefits"}},
-    "customer_relationships": {{"title": "Stakeholder Relationships", "description": "Community engagement and stakeholder management"}},
-    "channels": {{"title": "ESG Communication", "description": "Sustainability reporting and communication channels"}},
-    "customer_segments": {{"title": "Stakeholder Groups", "description": "Different stakeholder segments and their ESG interests"}},
-    "cost_structure": {{"title": "ESG Costs", "description": "Sustainability investments and ESG-related costs"}},
-    "revenue_streams": {{"title": "ESG Value & Benefits", "description": "Revenue and benefits from ESG initiatives"}}
-}}
+CANVAS_SECTIONS = {
+    "key_partnerships": {"title": "Key Partnerships", "description": "Sustainability partnerships and supplier relationships"},
+    "key_activities": {"title": "Key Activities", "description": "Core ESG activities and environmental practices"},
+    "key_resources": {"title": "Key Resources", "description": "ESG governance, policies, and sustainable resources"},
+    "value_propositions": {"title": "Value Propositions", "description": "ESG value creation and sustainability benefits"},
+    "customer_relationships": {"title": "Stakeholder Relationships", "description": "Community engagement and stakeholder management"},
+    "channels": {"title": "ESG Communication", "description": "Sustainability reporting and communication channels"},
+    "customer_segments": {"title": "Stakeholder Groups", "description": "Different stakeholder segments and their ESG interests"},
+    "cost_structure": {"title": "ESG Costs", "description": "Sustainability investments and ESG-related costs"},
+    "revenue_streams": {"title": "ESG Value & Benefits", "description": "Revenue and benefits from ESG initiatives"}
+}
 
 # Include the router in the main app
 app.include_router(api_router)
