@@ -305,6 +305,158 @@ class FinancialRatioCreate(BaseModel):
     esg_influenced: bool = False
     calculation_method: str
     interpretation: Optional[str] = None
+
+# Risk and Opportunity Assessment Models
+class RiskAssessment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    risk_title: str
+    risk_description: str
+    risk_type: RiskType
+    esg_category: ESGCategory
+    likelihood: RiskLikelihood
+    impact: RiskImpact
+    risk_score: float = 0.0  # Calculated: likelihood × impact
+    time_horizon: str  # Short-term, Medium-term, Long-term
+    potential_financial_impact: Optional[float] = None
+    mitigation_strategies: List[str] = []
+    risk_owner: Optional[str] = None
+    current_controls: Optional[str] = None
+    residual_risk_level: Optional[str] = None
+    ifrs_disclosure_required: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class OpportunityAssessment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    opportunity_title: str
+    opportunity_description: str
+    opportunity_type: OpportunityType
+    esg_category: ESGCategory
+    likelihood: RiskLikelihood  # Reusing for consistency
+    impact: RiskImpact  # Positive impact
+    opportunity_score: float = 0.0  # Calculated: likelihood × impact
+    time_horizon: str
+    potential_financial_benefit: Optional[float] = None
+    implementation_strategies: List[str] = []
+    opportunity_owner: Optional[str] = None
+    required_investment: Optional[float] = None
+    expected_roi: Optional[float] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class SWOTAnalysis(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    swot_title: str
+    swot_description: str
+    swot_category: SWOTCategory
+    esg_category: ESGCategory
+    strategic_importance: str  # High, Medium, Low
+    actionable_insights: List[str] = []
+    related_risks: List[str] = []  # Risk IDs
+    related_opportunities: List[str] = []  # Opportunity IDs
+    financial_implications: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ScenarioAnalysis(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    scenario_name: str
+    scenario_description: str
+    scenario_type: ScenarioType
+    time_horizon: str  # 1-year, 3-year, 5-year, 10-year
+    key_assumptions: List[str] = []
+    esg_performance_impact: Dict[str, float] = {}  # ESG category impacts
+    financial_impact: Dict[str, float] = {}  # Financial metrics impact
+    risk_factors: List[str] = []  # Risk IDs that apply
+    opportunity_factors: List[str] = []  # Opportunity IDs that apply
+    probability: float = 0.0  # 0-100%
+    strategic_implications: List[str] = []
+    recommended_actions: List[str] = []
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Create models for input
+class RiskAssessmentCreate(BaseModel):
+    organization_id: str
+    risk_title: str
+    risk_description: str
+    risk_type: RiskType
+    esg_category: ESGCategory
+    likelihood: RiskLikelihood
+    impact: RiskImpact
+    time_horizon: str
+    potential_financial_impact: Optional[float] = None
+    mitigation_strategies: List[str] = []
+    risk_owner: Optional[str] = None
+    current_controls: Optional[str] = None
+    residual_risk_level: Optional[str] = None
+    ifrs_disclosure_required: bool = False
+
+class OpportunityAssessmentCreate(BaseModel):
+    organization_id: str
+    opportunity_title: str
+    opportunity_description: str
+    opportunity_type: OpportunityType
+    esg_category: ESGCategory
+    likelihood: RiskLikelihood
+    impact: RiskImpact
+    time_horizon: str
+    potential_financial_benefit: Optional[float] = None
+    implementation_strategies: List[str] = []
+    opportunity_owner: Optional[str] = None
+    required_investment: Optional[float] = None
+    expected_roi: Optional[float] = None
+
+class SWOTAnalysisCreate(BaseModel):
+    organization_id: str
+    swot_title: str
+    swot_description: str
+    swot_category: SWOTCategory
+    esg_category: ESGCategory
+    strategic_importance: str
+    actionable_insights: List[str] = []
+    related_risks: List[str] = []
+    related_opportunities: List[str] = []
+    financial_implications: Optional[str] = None
+
+class ScenarioAnalysisCreate(BaseModel):
+    organization_id: str
+    scenario_name: str
+    scenario_description: str
+    scenario_type: ScenarioType
+    time_horizon: str
+    key_assumptions: List[str] = []
+    esg_performance_impact: Dict[str, float] = {}
+    financial_impact: Dict[str, float] = {}
+    risk_factors: List[str] = []
+    opportunity_factors: List[str] = []
+    probability: float = 0.0
+    strategic_implications: List[str] = []
+    recommended_actions: List[str] = []
+
+def calculate_risk_score(likelihood: RiskLikelihood, impact: RiskImpact) -> float:
+    """Calculate risk score using likelihood and impact"""
+    likelihood_values = {
+        "very_low": 0.05,    # 5%
+        "low": 0.15,         # 15%
+        "medium": 0.35,      # 35%
+        "high": 0.65,        # 65%
+        "very_high": 0.90    # 90%
+    }
+    
+    impact_values = {
+        "negligible": 1,
+        "minor": 2,
+        "moderate": 3,
+        "major": 4,
+        "severe": 5
+    }
+    
+    return likelihood_values.get(likelihood.value, 0.5) * impact_values.get(impact.value, 3) * 20  # Scale to 100
+
+# Enhanced Models with Double Materiality and Financial Integration
 class MaterialityAssessment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     organization_id: str
