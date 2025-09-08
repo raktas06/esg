@@ -2358,45 +2358,274 @@ function App() {
                 </p>
               </div>
 
-              {/* Coming Soon Placeholder - Implementation in progress */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Shield className="h-5 w-5 mr-2" />
-                    Risk & Opportunity Assessment
-                  </CardTitle>
-                  <CardDescription>
-                    Strategic analysis tools for comprehensive ESG risk management
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-center py-12">
-                  <div className="max-w-md mx-auto">
-                    <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Advanced Analytics Coming Soon</h3>
-                    <p className="text-gray-500 mb-6">
-                      Risk assessment, opportunity identification, SWOT analysis, and scenario modeling features are being implemented.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="p-3 bg-red-50 rounded-lg">
-                        <div className="font-medium text-red-800">Risk Assessment</div>
-                        <div className="text-red-600">Physical, Transition, Regulatory</div>
+              {selectedOrg ? (
+                <div className="space-y-6">
+                  {/* Risk Assessment Summary */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Shield className="h-5 w-5 mr-2 text-red-600" />
+                        Risk Assessment Overview
+                      </CardTitle>
+                      <CardDescription>
+                        ESG-related risks with likelihood and impact analysis
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                          <div className="text-2xl font-bold text-red-600">0</div>
+                          <div className="text-sm text-gray-600">Critical Risks</div>
+                          <div className="text-xs text-gray-500">Score > 80</div>
+                        </div>
+                        <div className="text-center p-4 bg-orange-50 rounded-lg">
+                          <div className="text-2xl font-bold text-orange-600">0</div>
+                          <div className="text-sm text-gray-600">High Risks</div>
+                          <div className="text-xs text-gray-500">Score 61-80</div>
+                        </div>
+                        <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                          <div className="text-2xl font-bold text-yellow-600">0</div>
+                          <div className="text-sm text-gray-600">Medium Risks</div>
+                          <div className="text-xs text-gray-500">Score 31-60</div>
+                        </div>
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-2xl font-bold text-green-600">0</div>
+                          <div className="text-sm text-gray-600">Low Risks</div>
+                          <div className="text-xs text-gray-500">Score ≤ 30</div>
+                        </div>
                       </div>
-                      <div className="p-3 bg-green-50 rounded-lg">
-                        <div className="font-medium text-green-800">Opportunities</div>
-                        <div className="text-green-600">Resource Efficiency, Innovation</div>
+                      
+                      <div className="text-center py-8">
+                        <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Risks Assessed Yet</h3>
+                        <p className="text-gray-500 mb-4">Start by creating your first risk assessment</p>
+                        <Button 
+                          onClick={async () => {
+                            try {
+                              const sampleRisk = {
+                                organization_id: selectedOrg.id,
+                                risk_title: "Climate Change Physical Risk",
+                                risk_description: "Increased frequency of extreme weather events affecting operations",
+                                risk_type: "physical_risk",
+                                esg_category: "environmental",
+                                likelihood: "high",
+                                impact: "major",
+                                time_horizon: "Long-term",
+                                potential_financial_impact: 2500000,
+                                mitigation_strategies: ["Business continuity planning", "Infrastructure resilience upgrades"],
+                                ifrs_disclosure_required: true
+                              };
+                              
+                              await axios.post(`${API}/risk-assessment`, sampleRisk);
+                              alert('Sample risk assessment created! Reload the page to see results.');
+                            } catch (error) {
+                              console.error('Error creating risk:', error);
+                              alert('Error creating risk assessment');
+                            }
+                          }}
+                        >
+                          Create Sample Risk Assessment
+                        </Button>
                       </div>
-                      <div className="p-3 bg-purple-50 rounded-lg">
-                        <div className="font-medium text-purple-800">SWOT Analysis</div>
-                        <div className="text-purple-600">Strategic Positioning</div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Opportunity Assessment Summary */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+                        Opportunity Assessment Overview
+                      </CardTitle>
+                      <CardDescription>
+                        ESG-related opportunities for value creation and competitive advantage
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-2xl font-bold text-green-600">0</div>
+                          <div className="text-sm text-gray-600">High Potential</div>
+                          <div className="text-xs text-gray-500">Score > 70</div>
+                        </div>
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                          <div className="text-2xl font-bold text-blue-600">0</div>
+                          <div className="text-sm text-gray-600">Medium Potential</div>
+                          <div className="text-xs text-gray-500">Score 41-70</div>
+                        </div>
+                        <div className="text-center p-4 bg-purple-50 rounded-lg">
+                          <div className="text-2xl font-bold text-purple-600">$0</div>
+                          <div className="text-sm text-gray-600">Total ROI Potential</div>
+                          <div className="text-xs text-gray-500">Expected returns</div>
+                        </div>
+                        <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                          <div className="text-2xl font-bold text-yellow-600">$0</div>
+                          <div className="text-sm text-gray-600">Investment Required</div>
+                          <div className="text-xs text-gray-500">Capital needed</div>
+                        </div>
                       </div>
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <div className="font-medium text-blue-800">Scenarios</div>
-                        <div className="text-blue-600">Best/Worst/Likely Cases</div>
+                      
+                      <div className="text-center py-8">
+                        <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Opportunities Identified Yet</h3>
+                        <p className="text-gray-500 mb-4">Create your first opportunity assessment</p>
+                        <Button 
+                          onClick={async () => {
+                            try {
+                              const sampleOpportunity = {
+                                organization_id: selectedOrg.id,
+                                opportunity_title: "Renewable Energy Transition",
+                                opportunity_description: "Investment in solar and wind energy infrastructure",
+                                opportunity_type: "energy_source",
+                                esg_category: "environmental",
+                                likelihood: "high",
+                                impact: "major",
+                                time_horizon: "Medium-term",
+                                potential_financial_benefit: 5000000,
+                                implementation_strategies: ["Solar panel installation", "Wind energy partnerships"],
+                                required_investment: 2000000,
+                                expected_roi: 15.5
+                              };
+                              
+                              await axios.post(`${API}/opportunity-assessment`, sampleOpportunity);
+                              alert('Sample opportunity assessment created! Reload the page to see results.');
+                            } catch (error) {
+                              console.error('Error creating opportunity:', error);
+                              alert('Error creating opportunity assessment');
+                            }
+                          }}
+                        >
+                          Create Sample Opportunity
+                        </Button>
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+
+                  {/* SWOT Analysis Matrix */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Activity className="h-5 w-5 mr-2 text-purple-600" />
+                        SWOT Analysis Matrix
+                      </CardTitle>
+                      <CardDescription>
+                        Strategic analysis of Strengths, Weaknesses, Opportunities, and Threats
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Strengths */}
+                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                          <h4 className="font-semibold text-green-800 mb-3 flex items-center">
+                            <Award className="h-4 w-4 mr-2" />
+                            Strengths
+                          </h4>
+                          <div className="text-center py-8 text-green-600">
+                            <p className="text-sm">No strengths analyzed yet</p>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2"
+                              onClick={async () => {
+                                try {
+                                  const sampleStrength = {
+                                    organization_id: selectedOrg.id,
+                                    swot_title: "Strong ESG Governance",
+                                    swot_description: "Well-established sustainability policies and governance framework",
+                                    swot_category: "strength",
+                                    esg_category: "governance",
+                                    strategic_importance: "High",
+                                    actionable_insights: ["Leverage governance expertise for competitive advantage"],
+                                    financial_implications: "Reduced regulatory risk and improved stakeholder trust"
+                                  };
+                                  
+                                  await axios.post(`${API}/swot-analysis`, sampleStrength);
+                                  alert('Sample SWOT analysis created! Reload to see results.');
+                                } catch (error) {
+                                  alert('Error creating SWOT analysis');
+                                }
+                              }}
+                            >
+                              Add Sample
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Weaknesses */}
+                        <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                          <h4 className="font-semibold text-red-800 mb-3 flex items-center">
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            Weaknesses
+                          </h4>
+                          <div className="text-center py-8 text-red-600">
+                            <p className="text-sm">No weaknesses identified yet</p>
+                          </div>
+                        </div>
+
+                        {/* Opportunities */}
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
+                            <Target className="h-4 w-4 mr-2" />
+                            Opportunities
+                          </h4>
+                          <div className="text-center py-8 text-blue-600">
+                            <p className="text-sm">No opportunities mapped yet</p>
+                          </div>
+                        </div>
+
+                        {/* Threats */}
+                        <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                          <h4 className="font-semibold text-orange-800 mb-3 flex items-center">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Threats
+                          </h4>
+                          <div className="text-center py-8 text-orange-600">
+                            <p className="text-sm">No threats assessed yet</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Scenario Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <BarChart className="h-5 w-5 mr-2 text-indigo-600" />
+                        Scenario Analysis
+                      </CardTitle>
+                      <CardDescription>
+                        Strategic scenario modeling for different ESG performance outcomes
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-lg font-bold text-green-600">Best Case</div>
+                          <div className="text-sm text-gray-600">Optimal ESG performance</div>
+                          <div className="text-xs text-gray-500 mt-2">No scenarios yet</div>
+                        </div>
+                        <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                          <div className="text-lg font-bold text-yellow-600">Most Likely</div>
+                          <div className="text-sm text-gray-600">Expected performance</div>
+                          <div className="text-xs text-gray-500 mt-2">No scenarios yet</div>
+                        </div>
+                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                          <div className="text-lg font-bold text-red-600">Worst Case</div>
+                          <div className="text-sm text-gray-600">Risk scenario</div>
+                          <div className="text-xs text-gray-500 mt-2">No scenarios yet</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select an Organization</h3>
+                  <p className="text-gray-500">Choose an organization to view risk and opportunity analysis</p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         )}
