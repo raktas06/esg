@@ -22,6 +22,7 @@ import {
   Tooltip, 
   Legend,
   PieChart as RechartsPieChart,
+  Pie,
   Cell,
   RadarChart,
   PolarGrid,
