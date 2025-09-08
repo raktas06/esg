@@ -4,13 +4,13 @@ import json
 from datetime import datetime
 
 class ESGAPITester:
-    def __init__(self, base_url="https://impact-data.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://impact-data.preview.emergentagent.com"):
         self.base_url = base_url
+        self.api_url = f"{base_url}/api"
         self.tests_run = 0
         self.tests_passed = 0
-        self.created_org_id = None
-        self.created_assessment_id = None
-        self.created_question_ids = []
+        self.test_org_id = None
+        self.test_assessment_id = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
         """Run a single API test"""
