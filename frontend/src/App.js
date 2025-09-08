@@ -294,7 +294,8 @@ function App() {
         website: '', employee_count: '', annual_revenue: '', stock_symbol: '' 
       });
       
-      // Close dialog by triggering a page refresh or state update
+      // Close dialog and show success message
+      setIsOrgDialogOpen(false);
       alert('Organization created successfully!');
       setCurrentView('dashboard');
       await loadAssessments(response.data.id);
