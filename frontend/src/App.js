@@ -1927,10 +1927,26 @@ function App() {
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file && selectedOrg) {
+                              // Validate file size (max 10MB)
+                              if (file.size > 10 * 1024 * 1024) {
+                                alert('File size must be less than 10MB');
+                                return;
+                              }
+                              
+                              // Validate file type
+                              const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                              if (!allowedTypes.includes(file.type)) {
+                                alert('Only PDF and DOCX files are supported');
+                                return;
+                              }
+                              
                               try {
+                                setLoading(true);
                                 const formData = new FormData();
                                 formData.append('file', file);
                                 formData.append('organization_id', selectedOrg.id);
+                                
+                                console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
                                 
                                 const response = await fetch(`${API}/reports/upload?organization_id=${selectedOrg.id}`, {
                                   method: 'POST',
@@ -1939,15 +1955,23 @@ function App() {
                                 
                                 if (response.ok) {
                                   const result = await response.json();
-                                  alert(`Report uploaded successfully! ${result.extracted_metrics} metrics extracted.`);
+                                  alert(`✅ Report uploaded successfully!\n\n📊 Analysis Results:\n• ${result.extracted_metrics || 0} ESG metrics extracted\n• Automatic comparison completed\n• Recommendations generated\n\nCheck the uploaded reports list below to view detailed analysis.`);
                                   // Reload uploaded reports
                                   loadUploadedReports();
                                 } else {
-                                  alert('Failed to upload report');
+                                  const errorData = await response.json();
+                                  alert(`❌ Upload failed: ${errorData.detail || 'Unknown error'}`);
                                 }
                               } catch (error) {
-                                alert('Error uploading report: ' + error.message);
+                                console.error('Upload error:', error);
+                                alert(`❌ Error uploading report: ${error.message}`);
+                              } finally {
+                                setLoading(false);
+                                // Reset file input
+                                e.target.value = '';
                               }
+                            } else {
+                              alert('Please select an organization first');
                             }
                           }}
                         />
