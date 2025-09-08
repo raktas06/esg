@@ -1330,7 +1330,7 @@ function App() {
                       <CardContent>
                         <ResponsiveContainer width="100%" height={250}>
                           <RechartsPieChart>
-                            <PieChart
+                            <Pie
                               data={[
                                 { name: 'Assets', value: financialStatementsData.balance_sheet_summary.total_assets, fill: '#3b82f6' },
                                 { name: 'Liabilities', value: financialStatementsData.balance_sheet_summary.total_liabilities, fill: '#ef4444' },
@@ -1349,7 +1349,7 @@ function App() {
                               ].map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.fill} />
                               ))}
-                            </PieChart>
+                            </Pie>
                             <Tooltip formatter={(value) => [`$${(value/1000000).toFixed(1)}M`, 'Amount']} />
                           </RechartsPieChart>
                         </ResponsiveContainer>
