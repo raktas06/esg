@@ -2166,6 +2166,55 @@ function App() {
                 </Card>
               )}
             </TabsContent>
+
+            <TabsContent value="risks" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Risk & Opportunity Analysis</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Comprehensive assessment of ESG-related risks, opportunities, and SWOT-based scenario analysis
+                </p>
+              </div>
+
+              {/* Coming Soon Placeholder - Implementation in progress */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Shield className="h-5 w-5 mr-2" />
+                    Risk & Opportunity Assessment
+                  </CardTitle>
+                  <CardDescription>
+                    Strategic analysis tools for comprehensive ESG risk management
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center py-12">
+                  <div className="max-w-md mx-auto">
+                    <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Advanced Analytics Coming Soon</h3>
+                    <p className="text-gray-500 mb-6">
+                      Risk assessment, opportunity identification, SWOT analysis, and scenario modeling features are being implemented.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="p-3 bg-red-50 rounded-lg">
+                        <div className="font-medium text-red-800">Risk Assessment</div>
+                        <div className="text-red-600">Physical, Transition, Regulatory</div>
+                      </div>
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <div className="font-medium text-green-800">Opportunities</div>
+                        <div className="text-green-600">Resource Efficiency, Innovation</div>
+                      </div>
+                      <div className="p-3 bg-purple-50 rounded-lg">
+                        <div className="font-medium text-purple-800">SWOT Analysis</div>
+                        <div className="text-purple-600">Strategic Positioning</div>
+                      </div>
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <div className="font-medium text-blue-800">Scenarios</div>
+                        <div className="text-blue-600">Best/Worst/Likely Cases</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         )}
       </main>
