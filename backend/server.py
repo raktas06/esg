@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Response
+from fastapi import FastAPI, APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -46,6 +46,8 @@ class QuestionType(str, Enum):
     TEXT = "text"
     NUMERICAL = "numerical"
     BOOLEAN = "boolean"
+    FINANCIAL_IMPACT = "financial_impact"
+    MATERIALITY_MATRIX = "materiality_matrix"
 
 class CanvasSection(str, Enum):
     KEY_PARTNERSHIPS = "key_partnerships"
@@ -61,13 +63,31 @@ class CanvasSection(str, Enum):
 class Standard(str, Enum):
     GRI = "GRI"
     EFRAG = "EFRAG"
-    IFRS = "IFRS"
+    IFRS_S1 = "IFRS_S1"
+    IFRS_S2 = "IFRS_S2"
+    IAS = "IAS"
+    SASB = "SASB"
+    TCFD = "TCFD"
+
+class MaterialityType(str, Enum):
+    IMPACT_MATERIALITY = "impact_materiality"
+    FINANCIAL_MATERIALITY = "financial_materiality"
+    DOUBLE_MATERIALITY = "double_materiality"
+
+class FinancialImpactType(str, Enum):
+    REVENUE_IMPACT = "revenue_impact"
+    COST_IMPACT = "cost_impact"
+    RISK_IMPACT = "risk_impact" 
+    OPPORTUNITY_IMPACT = "opportunity_impact"
+    CAPEX_IMPACT = "capex_impact"
+    OPEX_IMPACT = "opex_impact"
 
 class UserRole(str, Enum):
     ADMIN = "admin"
     MANAGER = "manager"
     CONTRIBUTOR = "contributor"
     VIEWER = "viewer"
+    FINANCIAL_ANALYST = "financial_analyst"
 
 class AssessmentStatus(str, Enum):
     DRAFT = "draft"
@@ -79,10 +99,85 @@ class AssessmentStatus(str, Enum):
 class ReportType(str, Enum):
     COMPREHENSIVE = "comprehensive"
     EXECUTIVE_SUMMARY = "executive_summary"
-    GRI_COMPLIANCE = "gri_compliance"
-    CANVAS_OVERVIEW = "canvas_overview"
+    IFRS_COMPLIANCE = "ifrs_compliance"
+    MATERIALITY_ASSESSMENT = "materiality_assessment"
+    FINANCIAL_IMPACT = "financial_impact"
 
-# Enhanced Models
+# Enhanced Models with Double Materiality and Financial Integration
+class MaterialityAssessment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    topic: str
+    description: str
+    esg_category: ESGCategory
+    impact_materiality_score: float = 0.0  # 0-10 scale
+    financial_materiality_score: float = 0.0  # 0-10 scale
+    double_materiality_score: float = 0.0  # Calculated
+    stakeholder_input: Dict[str, float] = {}  # Stakeholder weights
+    impact_justification: Optional[str] = None
+    financial_justification: Optional[str] = None
+    ifrs_s1_relevant: bool = False
+    ifrs_s2_relevant: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class MaterialityAssessmentCreate(BaseModel):
+    organization_id: str
+    topic: str
+    description: str
+    esg_category: ESGCategory
+    impact_materiality_score: float
+    financial_materiality_score: float
+    stakeholder_input: Dict[str, float] = {}
+    impact_justification: Optional[str] = None
+    financial_justification: Optional[str] = None
+    ifrs_s1_relevant: bool = False
+    ifrs_s2_relevant: bool = False
+
+class FinancialImpactAssessment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    esg_topic: str
+    impact_type: FinancialImpactType
+    financial_metric: str  # Revenue, EBITDA, CAPEX, etc.
+    current_value: float
+    projected_value: float
+    time_horizon: str  # Short-term (1-2 years), Medium-term (3-5 years), Long-term (5+ years)
+    confidence_level: str  # Low, Medium, High
+    assumptions: List[str] = []
+    ifrs_standard_reference: Optional[str] = None
+    accounting_treatment: Optional[str] = None
+    disclosure_requirement: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FinancialImpactCreate(BaseModel):
+    organization_id: str
+    esg_topic: str
+    impact_type: FinancialImpactType
+    financial_metric: str
+    current_value: float
+    projected_value: float
+    time_horizon: str
+    confidence_level: str
+    assumptions: List[str] = []
+    ifrs_standard_reference: Optional[str] = None
+    accounting_treatment: Optional[str] = None
+    disclosure_requirement: bool = False
+
+class IFRSMapping(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    ifrs_standard: Standard
+    disclosure_requirement: str
+    esg_topic: str
+    financial_statement_line_item: Optional[str] = None
+    quantitative_disclosure: Optional[float] = None
+    qualitative_disclosure: Optional[str] = None
+    compliance_status: str = "not_started"  # not_started, in_progress, compliant, non_compliant
+    gap_analysis: Optional[str] = None
+    remediation_plan: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
@@ -109,13 +204,16 @@ class Question(BaseModel):
     esg_category: ESGCategory
     canvas_section: CanvasSection
     standard: Standard
-    reference_code: Optional[str] = None  # e.g., "GRI 102-1"
+    reference_code: Optional[str] = None  # e.g., "IFRS S1-15"
     options: Optional[List[str]] = None  # for multiple choice
     scale_min: Optional[int] = None  # for scale questions
     scale_max: Optional[int] = None
     scale_labels: Optional[Dict[str, str]] = None
     is_required: bool = True
     weight: float = 1.0  # For scoring calculations
+    financial_relevance: bool = False  # Links to financial statements
+    materiality_topic: Optional[str] = None  # Links to materiality assessment
+    ifrs_disclosure_requirement: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class QuestionCreate(BaseModel):
@@ -132,6 +230,9 @@ class QuestionCreate(BaseModel):
     scale_labels: Optional[Dict[str, str]] = None
     is_required: bool = True
     weight: float = 1.0
+    financial_relevance: bool = False
+    materiality_topic: Optional[str] = None
+    ifrs_disclosure_requirement: bool = False
 
 class Answer(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -142,6 +243,7 @@ class Answer(BaseModel):
     comments: Optional[str] = None
     status: str = "submitted"  # submitted, approved, needs_review
     score: Optional[float] = None  # Calculated score for this answer
+    financial_impact_estimate: Optional[float] = None  # Financial impact in base currency
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -150,6 +252,7 @@ class AnswerCreate(BaseModel):
     organization_id: str
     answer_value: Any
     comments: Optional[str] = None
+    financial_impact_estimate: Optional[float] = None
 
 class Organization(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -161,7 +264,12 @@ class Organization(BaseModel):
     website: Optional[str] = None
     employee_count: Optional[int] = None
     annual_revenue: Optional[str] = None
+    annual_revenue_numeric: Optional[float] = None  # For financial calculations
     stock_symbol: Optional[str] = None
+    base_currency: str = "USD"
+    fiscal_year_end: Optional[str] = None
+    ifrs_reporter: bool = False
+    sustainability_reporting_framework: List[str] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class OrganizationCreate(BaseModel):
@@ -173,7 +281,12 @@ class OrganizationCreate(BaseModel):
     website: Optional[str] = None
     employee_count: Optional[int] = None
     annual_revenue: Optional[str] = None
+    annual_revenue_numeric: Optional[float] = None
     stock_symbol: Optional[str] = None
+    base_currency: str = "USD"
+    fiscal_year_end: Optional[str] = None
+    ifrs_reporter: bool = False
+    sustainability_reporting_framework: List[str] = []
 
 class Assessment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -184,6 +297,9 @@ class Assessment(BaseModel):
     progress: Dict[CanvasSection, float] = {}  # percentage completion per section
     scores: Dict[str, float] = {}  # ESG scores by category
     overall_score: Optional[float] = None
+    materiality_assessment_complete: bool = False
+    financial_impact_assessed: bool = False
+    ifrs_compliance_checked: bool = False
     assigned_users: List[str] = []  # User IDs assigned to this assessment
     reviewer_id: Optional[str] = None
     created_by: str
@@ -208,459 +324,6 @@ class ESGReport(BaseModel):
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     report_data: Dict[str, Any] = {}
     file_url: Optional[str] = None
-
-# HTML Report Templates
-def get_comprehensive_html_report_template():
-    return """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESG Comprehensive Report - {organization_name}</title>
-    <style>
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background: #f8f9fa;
-        }}
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }}
-        .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-            margin: -20px -20px 40px -20px;
-        }}
-        .header h1 {{
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
-            font-weight: 300;
-        }}
-        .header p {{
-            margin: 0;
-            font-size: 1.2em;
-            opacity: 0.9;
-        }}
-        .report-meta {{
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }}
-        .meta-item {{
-            text-align: center;
-        }}
-        .meta-label {{
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 5px;
-        }}
-        .meta-value {{
-            font-size: 1.4em;
-            font-weight: bold;
-            color: #333;
-        }}
-        .section {{
-            margin-bottom: 40px;
-        }}
-        .section-title {{
-            font-size: 1.8em;
-            color: #333;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-        }}
-        .esg-scores {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }}
-        .score-card {{
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-left: 5px solid;
-        }}
-        .score-card.environmental {{
-            border-left-color: #10b981;
-        }}
-        .score-card.social {{
-            border-left-color: #3b82f6;
-        }}
-        .score-card.governance {{
-            border-left-color: #8b5cf6;
-        }}
-        .score-title {{
-            font-size: 1.1em;
-            color: #666;
-            margin-bottom: 10px;
-        }}
-        .score-value {{
-            font-size: 3em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-        }}
-        .score-bar {{
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }}
-        .score-fill {{
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }}
-        .score-fill.environmental {{
-            background: linear-gradient(90deg, #10b981, #34d399);
-        }}
-        .score-fill.social {{
-            background: linear-gradient(90deg, #3b82f6, #60a5fa);
-        }}
-        .score-fill.governance {{
-            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
-        }}
-        .canvas-section {{
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }}
-        .canvas-title {{
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 15px;
-        }}
-        .progress-bar {{
-            height: 6px;
-            background: #e5e7eb;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }}
-        .progress-fill {{
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            border-radius: 3px;
-        }}
-        .question-item {{
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid #e5e7eb;
-        }}
-        .question-item.answered {{
-            border-left-color: #10b981;
-        }}
-        .question-text {{
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }}
-        .question-answer {{
-            color: #666;
-            font-style: italic;
-        }}
-        .question-meta {{
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }}
-        .badge {{
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: 500;
-        }}
-        .badge.environmental {{
-            background: #dcfce7;
-            color: #166534;
-        }}
-        .badge.social {{
-            background: #dbeafe;
-            color: #1e40af;
-        }}
-        .badge.governance {{
-            background: #e9d5ff;
-            color: #7c2d12;
-        }}
-        .badge.standard {{
-            background: #f3f4f6;
-            color: #374151;
-        }}
-        .footer {{
-            margin-top: 50px;
-            padding-top: 30px;
-            border-top: 2px solid #e5e7eb;
-            text-align: center;
-            color: #666;
-        }}
-        .recommendations {{
-            background: #fef3c7;
-            border-left: 5px solid #f59e0b;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }}
-        .recommendations h3 {{
-            color: #92400e;
-            margin-bottom: 15px;
-        }}
-        .recommendation-item {{
-            margin-bottom: 10px;
-            padding-left: 20px;
-            position: relative;
-        }}
-        .recommendation-item:before {{
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: #f59e0b;
-            font-weight: bold;
-        }}
-        @media print {{
-            body {{
-                background: white;
-            }}
-            .container {{
-                box-shadow: none;
-                margin: 0;
-                padding: 0;
-            }}
-            .header {{
-                margin: 0 0 40px 0;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>ESG Sustainability Report</h1>
-            <p>{organization_name} • {industry} • {report_date}</p>
-        </div>
-
-        <div class="report-meta">
-            <div class="meta-item">
-                <div class="meta-label">Overall ESG Score</div>
-                <div class="meta-value">{overall_score}/100</div>
-            </div>
-            <div class="meta-item">
-                <div class="meta-label">Assessment Progress</div>
-                <div class="meta-value">{completion_percentage}%</div>
-            </div>
-            <div class="meta-item">
-                <div class="meta-label">Questions Answered</div>
-                <div class="meta-value">{answered_questions}/{total_questions}</div>
-            </div>
-            <div class="meta-item">
-                <div class="meta-label">Report Generated</div>
-                <div class="meta-value">{report_date}</div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">ESG Performance Overview</h2>
-            <div class="esg-scores">
-                <div class="score-card environmental">
-                    <div class="score-title">Environmental Score</div>
-                    <div class="score-value">{environmental_score}</div>
-                    <div class="score-bar">
-                        <div class="score-fill environmental" style="width: {environmental_score}%"></div>
-                    </div>
-                    <p>Sustainability & Environmental Impact</p>
-                </div>
-                <div class="score-card social">
-                    <div class="score-title">Social Score</div>
-                    <div class="score-value">{social_score}</div>
-                    <div class="score-bar">
-                        <div class="score-fill social" style="width: {social_score}%"></div>
-                    </div>
-                    <p>Social Responsibility & Community Impact</p>
-                </div>
-                <div class="score-card governance">
-                    <div class="score-title">Governance Score</div>
-                    <div class="score-value">{governance_score}</div>
-                    <div class="score-bar">
-                        <div class="score-fill governance" style="width: {governance_score}%"></div>
-                    </div>
-                    <p>Corporate Governance & Ethics</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">Canvas Section Analysis</h2>
-            {canvas_sections_html}
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">Detailed Assessment Responses</h2>
-            {questions_html}
-        </div>
-
-        <div class="recommendations">
-            <h3>Key Recommendations</h3>
-            {recommendations_html}
-        </div>
-
-        <div class="footer">
-            <p><strong>ESG Canvas Reporter</strong> - Advanced Sustainability Analytics Platform</p>
-            <p>Report generated on {report_date} • Based on GRI, EFRAG, and IFRS standards</p>
-        </div>
-    </div>
-</body>
-</html>
-"""
-
-def get_executive_summary_template():
-    return """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESG Executive Summary - {organization_name}</title>
-    <style>
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            background: white;
-        }}
-        .container {{
-            max-width: 800px;
-            margin: 0 auto;
-        }}
-        .header {{
-            text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #667eea;
-        }}
-        .header h1 {{
-            color: #667eea;
-            margin-bottom: 10px;
-        }}
-        .executive-summary {{
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-        }}
-        .summary-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }}
-        .summary-card {{
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }}
-        .summary-score {{
-            font-size: 2.5em;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }}
-        .summary-score.environmental {{ color: #10b981; }}
-        .summary-score.social {{ color: #3b82f6; }}
-        .summary-score.governance {{ color: #8b5cf6; }}
-        .summary-score.overall {{ color: #667eea; }}
-        .key-findings {{
-            margin-bottom: 30px;
-        }}
-        .finding-item {{
-            margin-bottom: 15px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }}
-        .priority-actions {{
-            background: #fef3c7;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 5px solid #f59e0b;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>ESG Executive Summary</h1>
-            <h2>{organization_name}</h2>
-            <p>{report_date}</p>
-        </div>
-
-        <div class="executive-summary">
-            <h3>Executive Overview</h3>
-            <p>This executive summary provides a high-level overview of {organization_name}'s ESG performance based on our comprehensive sustainability assessment using business model canvas methodology and international standards (GRI, EFRAG, IFRS).</p>
-        </div>
-
-        <div class="summary-grid">
-            <div class="summary-card">
-                <div class="summary-score overall">{overall_score}</div>
-                <h4>Overall ESG Score</h4>
-                <p>Out of 100</p>
-            </div>
-            <div class="summary-card">
-                <div class="summary-score environmental">{environmental_score}</div>
-                <h4>Environmental</h4>
-                <p>Sustainability Impact</p>
-            </div>
-            <div class="summary-card">
-                <div class="summary-score social">{social_score}</div>
-                <h4>Social</h4>
-                <p>Community & Stakeholders</p>
-            </div>
-            <div class="summary-card">
-                <div class="summary-score governance">{governance_score}</div>
-                <h4>Governance</h4>
-                <p>Ethics & Management</p>
-            </div>
-        </div>
-
-        <div class="key-findings">
-            <h3>Key Findings</h3>
-            {key_findings_html}
-        </div>
-
-        <div class="priority-actions">
-            <h3>Priority Actions</h3>
-            {priority_actions_html}
-        </div>
-    </div>
-</body>
-</html>
-"""
 
 # Helper functions
 def prepare_for_mongo(data):
@@ -726,6 +389,12 @@ def calculate_esg_score(answers, questions):
     
     return scores
 
+def calculate_double_materiality_score(impact_score: float, financial_score: float) -> float:
+    """Calculate double materiality score using weighted approach"""
+    # Double materiality considers both dimensions
+    # Higher score if either dimension is high (max approach with weighting)
+    return max(impact_score, financial_score) * 0.7 + min(impact_score, financial_score) * 0.3
+
 # Canvas section definitions
 CANVAS_SECTIONS = {
     "key_partnerships": {"title": "Key Partnerships", "description": "Sustainability partnerships and supplier relationships"},
@@ -742,7 +411,180 @@ CANVAS_SECTIONS = {
 # Routes
 @api_router.get("/")
 async def root():
-    return {"message": "ESG Reporting API v2.0 - Enhanced with HTML Reports"}
+    return {"message": "ESG Reporting API v3.0 - Enhanced with Double Materiality & IFRS Integration"}
+
+# Double Materiality Assessment Routes
+@api_router.post("/materiality", response_model=MaterialityAssessment)
+async def create_materiality_assessment(input: MaterialityAssessmentCreate):
+    assessment_dict = input.dict()
+    # Calculate double materiality score
+    assessment_dict["double_materiality_score"] = calculate_double_materiality_score(
+        input.impact_materiality_score, input.financial_materiality_score
+    )
+    assessment_obj = MaterialityAssessment(**assessment_dict)
+    assessment_data = prepare_for_mongo(assessment_obj.dict())
+    await db.materiality_assessments.insert_one(assessment_data)
+    return assessment_obj
+
+@api_router.get("/materiality", response_model=List[MaterialityAssessment])
+async def get_materiality_assessments(organization_id: Optional[str] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    
+    assessments = await db.materiality_assessments.find(filter_dict).to_list(1000)
+    return [MaterialityAssessment(**parse_from_mongo(a)) for a in assessments]
+
+@api_router.get("/materiality/{organization_id}/matrix")
+async def get_materiality_matrix(organization_id: str):
+    """Get materiality matrix data for visualization"""
+    assessments = await db.materiality_assessments.find({"organization_id": organization_id}).to_list(1000)
+    
+    matrix_data = []
+    for assessment in assessments:
+        matrix_data.append({
+            "topic": assessment["topic"],
+            "esg_category": assessment["esg_category"],
+            "impact_materiality": assessment["impact_materiality_score"],
+            "financial_materiality": assessment["financial_materiality_score"],
+            "double_materiality": assessment["double_materiality_score"],
+            "ifrs_s1_relevant": assessment.get("ifrs_s1_relevant", False),
+            "ifrs_s2_relevant": assessment.get("ifrs_s2_relevant", False)
+        })
+    
+    return {
+        "organization_id": organization_id,
+        "matrix_data": matrix_data,
+        "high_priority_topics": [item for item in matrix_data if item["double_materiality"] >= 7.0],
+        "ifrs_relevant_topics": [item for item in matrix_data if item["ifrs_s1_relevant"] or item["ifrs_s2_relevant"]]
+    }
+
+# Financial Impact Assessment Routes
+@api_router.post("/financial-impact", response_model=FinancialImpactAssessment)
+async def create_financial_impact_assessment(input: FinancialImpactCreate):
+    impact_dict = input.dict()
+    impact_obj = FinancialImpactAssessment(**impact_dict)
+    impact_data = prepare_for_mongo(impact_obj.dict())
+    await db.financial_impacts.insert_one(impact_data)
+    return impact_obj
+
+@api_router.get("/financial-impact", response_model=List[FinancialImpactAssessment])
+async def get_financial_impact_assessments(organization_id: Optional[str] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    
+    impacts = await db.financial_impacts.find(filter_dict).to_list(1000)
+    return [FinancialImpactAssessment(**parse_from_mongo(i)) for i in impacts]
+
+@api_router.get("/financial-impact/{organization_id}/summary")
+async def get_financial_impact_summary(organization_id: str):
+    """Get aggregated financial impact summary"""
+    impacts = await db.financial_impacts.find({"organization_id": organization_id}).to_list(1000)
+    
+    summary = {
+        "total_impacts": len(impacts),
+        "by_type": {},
+        "by_time_horizon": {},
+        "total_projected_impact": 0,
+        "high_confidence_impacts": [],
+        "ifrs_disclosures_required": []
+    }
+    
+    for impact in impacts:
+        # Aggregate by impact type
+        impact_type = impact["impact_type"]
+        if impact_type not in summary["by_type"]:
+            summary["by_type"][impact_type] = {"count": 0, "total_value": 0}
+        summary["by_type"][impact_type]["count"] += 1
+        summary["by_type"][impact_type]["total_value"] += impact["projected_value"] - impact["current_value"]
+        
+        # Aggregate by time horizon
+        horizon = impact["time_horizon"]
+        if horizon not in summary["by_time_horizon"]:
+            summary["by_time_horizon"][horizon] = {"count": 0, "total_value": 0}
+        summary["by_time_horizon"][horizon]["count"] += 1
+        summary["by_time_horizon"][horizon]["total_value"] += impact["projected_value"] - impact["current_value"]
+        
+        # Total projected impact
+        summary["total_projected_impact"] += impact["projected_value"] - impact["current_value"]
+        
+        # High confidence impacts
+        if impact["confidence_level"] == "High":
+            summary["high_confidence_impacts"].append({
+                "esg_topic": impact["esg_topic"],
+                "impact_value": impact["projected_value"] - impact["current_value"],
+                "impact_type": impact["impact_type"]
+            })
+        
+        # IFRS disclosure requirements
+        if impact["disclosure_requirement"]:
+            summary["ifrs_disclosures_required"].append({
+                "esg_topic": impact["esg_topic"],
+                "ifrs_reference": impact.get("ifrs_standard_reference"),
+                "impact_value": impact["projected_value"] - impact["current_value"]
+            })
+    
+    return summary
+
+# IFRS Mapping Routes
+@api_router.post("/ifrs-mapping", response_model=IFRSMapping)
+async def create_ifrs_mapping(mapping: IFRSMapping):
+    mapping_data = prepare_for_mongo(mapping.dict())
+    await db.ifrs_mappings.insert_one(mapping_data)
+    return mapping
+
+@api_router.get("/ifrs-mapping", response_model=List[IFRSMapping])
+async def get_ifrs_mappings(organization_id: Optional[str] = None, ifrs_standard: Optional[Standard] = None):
+    filter_dict = {}
+    if organization_id:
+        filter_dict["organization_id"] = organization_id
+    if ifrs_standard:
+        filter_dict["ifrs_standard"] = ifrs_standard
+    
+    mappings = await db.ifrs_mappings.find(filter_dict).to_list(1000)
+    return [IFRSMapping(**parse_from_mongo(m)) for m in mappings]
+
+@api_router.get("/ifrs-mapping/{organization_id}/compliance-status")
+async def get_ifrs_compliance_status(organization_id: str):
+    """Get IFRS compliance status summary"""
+    mappings = await db.ifrs_mappings.find({"organization_id": organization_id}).to_list(1000)
+    
+    compliance_summary = {
+        "total_requirements": len(mappings),
+        "compliant": len([m for m in mappings if m["compliance_status"] == "compliant"]),
+        "in_progress": len([m for m in mappings if m["compliance_status"] == "in_progress"]),
+        "non_compliant": len([m for m in mappings if m["compliance_status"] == "non_compliant"]),
+        "not_started": len([m for m in mappings if m["compliance_status"] == "not_started"]),
+        "by_standard": {},
+        "gaps_identified": []
+    }
+    
+    for mapping in mappings:
+        standard = mapping["ifrs_standard"]
+        if standard not in compliance_summary["by_standard"]:
+            compliance_summary["by_standard"][standard] = {
+                "total": 0, "compliant": 0, "in_progress": 0, "non_compliant": 0, "not_started": 0
+            }
+        
+        compliance_summary["by_standard"][standard]["total"] += 1
+        compliance_summary["by_standard"][standard][mapping["compliance_status"]] += 1
+        
+        if mapping["gap_analysis"]:
+            compliance_summary["gaps_identified"].append({
+                "ifrs_standard": standard,
+                "requirement": mapping["disclosure_requirement"],
+                "gap": mapping["gap_analysis"],
+                "remediation_plan": mapping.get("remediation_plan")
+            })
+    
+    # Calculate compliance percentage
+    compliance_summary["compliance_percentage"] = (
+        compliance_summary["compliant"] / compliance_summary["total_requirements"] * 100
+        if compliance_summary["total_requirements"] > 0 else 0
+    )
+    
+    return compliance_summary
 
 # User management routes
 @api_router.post("/users", response_model=User)
@@ -825,7 +667,8 @@ async def create_question(input: QuestionCreate):
 async def get_questions(
     esg_category: Optional[ESGCategory] = None,
     canvas_section: Optional[CanvasSection] = None,
-    standard: Optional[Standard] = None
+    standard: Optional[Standard] = None,
+    financial_relevance: Optional[bool] = None
 ):
     filter_dict = {}
     if esg_category:
@@ -834,6 +677,8 @@ async def get_questions(
         filter_dict["canvas_section"] = canvas_section
     if standard:
         filter_dict["standard"] = standard
+    if financial_relevance is not None:
+        filter_dict["financial_relevance"] = financial_relevance
     
     questions = await db.questions.find(filter_dict).to_list(1000)
     return [Question(**parse_from_mongo(q)) for q in questions]
@@ -895,6 +740,7 @@ async def create_or_update_answer(input: AnswerCreate):
         update_data = {
             "answer_value": input.answer_value,
             "comments": input.comments,
+            "financial_impact_estimate": input.financial_impact_estimate,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         await db.answers.update_one(
@@ -955,31 +801,46 @@ async def get_assessment_progress(assessment_id: str):
     scores = calculate_esg_score(answers, questions)
     overall_score = sum(scores.values()) / len(scores) if scores else 0
     
+    # Calculate financial impact summary
+    financial_impact_total = sum([
+        a.get("financial_impact_estimate", 0) for a in answers 
+        if a.get("financial_impact_estimate")
+    ])
+    
     return {
         "assessment_id": assessment_id,
         "progress": progress,
         "esg_scores": scores,
         "overall_score": overall_score,
         "total_questions": len(questions),
-        "answered_questions": len(answers)
+        "answered_questions": len(answers),
+        "financial_impact_total": financial_impact_total,
+        "ifrs_relevant_questions": len([q for q in questions if q.get("ifrs_disclosure_requirement")])
     }
 
-# Advanced reporting routes
+# Advanced reporting routes with Double Materiality & IFRS
 @api_router.get("/reports/dashboard/{organization_id}")
 async def get_dashboard_data(organization_id: str):
-    """Get comprehensive dashboard data for an organization"""
+    """Get comprehensive dashboard data including materiality and financial impact"""
     
     # Get organization
     org = await db.organizations.find_one({"id": organization_id})
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
     
-    # Get assessments
+    # Get assessments, questions, and answers
     assessments = await db.assessments.find({"organization_id": organization_id}).to_list(100)
-    
-    # Get questions and answers
     questions = await db.questions.find().to_list(1000)
     answers = await db.answers.find({"organization_id": organization_id}).to_list(1000)
+    
+    # Get materiality assessments
+    materiality_assessments = await db.materiality_assessments.find({"organization_id": organization_id}).to_list(1000)
+    
+    # Get financial impact assessments
+    financial_impacts = await db.financial_impacts.find({"organization_id": organization_id}).to_list(1000)
+    
+    # Get IFRS mappings
+    ifrs_mappings = await db.ifrs_mappings.find({"organization_id": organization_id}).to_list(1000)
     
     # Calculate scores
     scores = calculate_esg_score(answers, questions)
@@ -1009,6 +870,30 @@ async def get_dashboard_data(organization_id: str):
             "percentage": (answered / total * 100) if total > 0 else 0
         }
     
+    # Calculate materiality summary
+    materiality_summary = {
+        "total_topics": len(materiality_assessments),
+        "high_priority": len([m for m in materiality_assessments if m["double_materiality_score"] >= 7.0]),
+        "ifrs_relevant": len([m for m in materiality_assessments if m.get("ifrs_s1_relevant") or m.get("ifrs_s2_relevant")]),
+        "average_impact_materiality": sum([m["impact_materiality_score"] for m in materiality_assessments]) / len(materiality_assessments) if materiality_assessments else 0,
+        "average_financial_materiality": sum([m["financial_materiality_score"] for m in materiality_assessments]) / len(materiality_assessments) if materiality_assessments else 0
+    }
+    
+    # Calculate financial impact summary
+    financial_summary = {
+        "total_impacts": len(financial_impacts),
+        "total_projected_impact": sum([f["projected_value"] - f["current_value"] for f in financial_impacts]),
+        "high_confidence_impacts": len([f for f in financial_impacts if f["confidence_level"] == "High"]),
+        "disclosure_required": len([f for f in financial_impacts if f["disclosure_requirement"]])
+    }
+    
+    # Calculate IFRS compliance
+    ifrs_compliance = {
+        "total_requirements": len(ifrs_mappings),
+        "compliant": len([m for m in ifrs_mappings if m["compliance_status"] == "compliant"]),
+        "compliance_percentage": (len([m for m in ifrs_mappings if m["compliance_status"] == "compliant"]) / len(ifrs_mappings) * 100) if ifrs_mappings else 0
+    }
+    
     return {
         "organization": Organization(**parse_from_mongo(org)),
         "assessments_count": len(assessments),
@@ -1018,7 +903,10 @@ async def get_dashboard_data(organization_id: str):
         "esg_completion": esg_completion,
         "total_questions": len(questions),
         "answered_questions": len(answers),
-        "completion_percentage": (len(answers) / len(questions) * 100) if len(questions) > 0 else 0
+        "completion_percentage": (len(answers) / len(questions) * 100) if len(questions) > 0 else 0,
+        "materiality_summary": materiality_summary,
+        "financial_summary": financial_summary,
+        "ifrs_compliance": ifrs_compliance
     }
 
 @api_router.get("/reports/benchmarking/{organization_id}")
@@ -1073,548 +961,10 @@ async def get_benchmarking_data(organization_id: str):
         }
     }
 
-# HTML Report Generation Routes
+# HTML Report Generation Routes with Double Materiality
 @api_router.get("/reports/html/{organization_id}/comprehensive", response_class=HTMLResponse)
 async def generate_comprehensive_html_report(organization_id: str):
-    """Generate comprehensive HTML report for an organization"""
-    
-    # Get organization data
-    org = await db.organizations.find_one({"id": organization_id})
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    
-    # Get dashboard data
-    dashboard_data = await get_dashboard_data(organization_id)
-    questions = await db.questions.find().to_list(1000)
-    answers = await db.answers.find({"organization_id": organization_id}).to_list(1000)
-    
-    # Create answer lookup
-    answer_lookup = {a["question_id"]: a for a in answers}
-    
-    # Generate canvas sections HTML
-    canvas_sections_html = ""
-    for section_key, section_info in CANVAS_SECTIONS.items():
-        completion = dashboard_data["canvas_completion"].get(section_key, {"percentage": 0, "answered": 0, "total": 0})
-        section_questions = [q for q in questions if q["canvas_section"] == section_key]
-        
-        canvas_sections_html += f"""
-        <div class="canvas-section">
-            <div class="canvas-title">{section_info['title']}</div>
-            <p>{section_info['description']}</p>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: {completion['percentage']}%"></div>
-            </div>
-            <div style="text-align: right; margin-top: 5px; color: #666; font-size: 0.9em;">
-                {completion['answered']} of {completion['total']} questions completed ({completion['percentage']:.1f}%)
-            </div>
-        </div>
-        """
-    
-    # Generate questions HTML
-    questions_html = ""
-    for question in questions:
-        answer = answer_lookup.get(question["id"])
-        answered_class = "answered" if answer else ""
-        answer_text = str(answer["answer_value"]) if answer else "Not answered"
-        
-        # Format answer based on question type
-        if answer and question["question_type"] == "boolean":
-            answer_text = "Yes" if answer["answer_value"] else "No"
-        elif answer and question["question_type"] == "scale":
-            scale_label = question.get("scale_labels", {}).get(str(answer["answer_value"]), "")
-            answer_text = f"{answer['answer_value']} - {scale_label}" if scale_label else str(answer["answer_value"])
-        
-        questions_html += f"""
-        <div class="question-item {answered_class}">
-            <div class="question-text">{question['question_text']}</div>
-            <div class="question-answer">{answer_text}</div>
-            <div class="question-meta">
-                <span class="badge {question['esg_category']}">{question['esg_category'].title()}</span>
-                <span class="badge standard">{question['standard']}</span>
-                {f'<span class="badge standard">{question["reference_code"]}</span>' if question.get("reference_code") else ''}
-                <span class="badge standard">Weight: {question['weight']}</span>
-            </div>
-        </div>
-        """
-    
-    # Generate recommendations HTML
-    recommendations = []
-    if dashboard_data["esg_scores"]["environmental"] < 70:
-        recommendations.append("Focus on environmental sustainability initiatives and partnerships")
-    if dashboard_data["esg_scores"]["social"] < 70:
-        recommendations.append("Enhance social responsibility programs and community engagement")
-    if dashboard_data["esg_scores"]["governance"] < 70:
-        recommendations.append("Strengthen governance frameworks and transparency measures")
-    if dashboard_data["completion_percentage"] < 100:
-        recommendations.append(f"Complete remaining {dashboard_data['total_questions'] - dashboard_data['answered_questions']} questions for comprehensive assessment")
-    
-    recommendations_html = ""
-    for rec in recommendations:
-        recommendations_html += f'<div class="recommendation-item">{rec}</div>'
-    
-    # Format template
-    template = get_comprehensive_html_report_template()
-    html_report = template.format(
-        organization_name=org["name"],
-        industry=org.get("industry", "Various"),
-        report_date=datetime.now().strftime("%B %d, %Y"),
-        overall_score=f"{dashboard_data['overall_score']:.1f}",
-        completion_percentage=f"{dashboard_data['completion_percentage']:.0f}",
-        answered_questions=dashboard_data["answered_questions"],
-        total_questions=dashboard_data["total_questions"],
-        environmental_score=f"{dashboard_data['esg_scores']['environmental']:.1f}",
-        social_score=f"{dashboard_data['esg_scores']['social']:.1f}",
-        governance_score=f"{dashboard_data['esg_scores']['governance']:.1f}",
-        canvas_sections_html=canvas_sections_html,
-        questions_html=questions_html,
-        recommendations_html=recommendations_html
-    )
-    
-    return HTMLResponse(content=html_report)
-
-@api_router.get("/reports/html/{organization_id}/executive", response_class=HTMLResponse)
-async def generate_executive_summary_html(organization_id: str):
-    """Generate executive summary HTML report for an organization"""
-    
-    # Get organization data
-    org = await db.organizations.find_one({"id": organization_id})
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    
-    # Get dashboard data
-    dashboard_data = await get_dashboard_data(organization_id)
-    
-    # Generate key findings
-    key_findings = []
-    if dashboard_data["esg_scores"]["environmental"] >= 80:
-        key_findings.append("Strong environmental performance with comprehensive sustainability practices")
-    elif dashboard_data["esg_scores"]["environmental"] >= 60:
-        key_findings.append("Moderate environmental performance with room for improvement in sustainability initiatives")
-    else:
-        key_findings.append("Environmental performance requires significant attention and investment")
-    
-    if dashboard_data["overall_score"] >= 75:
-        key_findings.append("Above-average overall ESG performance demonstrates commitment to sustainability")
-    else:
-        key_findings.append("ESG performance is below industry standards and requires strategic improvement")
-    
-    key_findings_html = ""
-    for finding in key_findings:
-        key_findings_html += f'<div class="finding-item">{finding}</div>'
-    
-    # Generate priority actions
-    priority_actions = []
-    lowest_score = min(dashboard_data["esg_scores"], key=dashboard_data["esg_scores"].get)
-    priority_actions.append(f"Prioritize improvements in {lowest_score} performance")
-    priority_actions.append("Complete comprehensive ESG assessment for detailed insights")
-    priority_actions.append("Develop ESG strategy aligned with business objectives")
-    
-    priority_actions_html = ""
-    for action in priority_actions:
-        priority_actions_html += f'<div class="recommendation-item">{action}</div>'
-    
-    # Format template
-    template = get_executive_summary_template()
-    html_report = template.format(
-        organization_name=org["name"],
-        report_date=datetime.now().strftime("%B %d, %Y"),
-        overall_score=f"{dashboard_data['overall_score']:.1f}",
-        environmental_score=f"{dashboard_data['esg_scores']['environmental']:.1f}",
-        social_score=f"{dashboard_data['esg_scores']['social']:.1f}",
-        governance_score=f"{dashboard_data['esg_scores']['governance']:.1f}",
-        key_findings_html=key_findings_html,
-        priority_actions_html=priority_actions_html
-    )
-    
-    return HTMLResponse(content=html_report)
-
-# Initialize comprehensive sample data route
-@api_router.post("/initialize-comprehensive-data")
-async def initialize_comprehensive_sample_data():
-    """Initialize comprehensive sample data with questions for all canvas sections"""
-    
-    # Check if comprehensive data already exists
-    existing_questions = await db.questions.count_documents({})
-    if existing_questions >= 27:  # 3 questions per canvas section (9 sections)
-        return {"message": "Comprehensive sample data already exists"}
-    
-    # Clear existing questions and add comprehensive set
-    await db.questions.delete_many({})
-    
-    comprehensive_questions = [
-        # KEY PARTNERSHIPS
-        {
-            "question_text": "How do you evaluate and select suppliers based on environmental sustainability criteria?",
-            "description": "Assess your supplier selection process including environmental impact assessments, certifications, and sustainability commitments.",
-            "question_type": "multiple_choice",
-            "esg_category": "environmental",
-            "canvas_section": "key_partnerships",
-            "standard": "GRI",
-            "reference_code": "GRI 308-1",
-            "options": ["No evaluation process", "Basic environmental checklist", "Comprehensive sustainability assessment", "Third-party certified evaluation", "Integrated ESG partnership strategy"],
-            "weight": 1.5
-        },
-        {
-            "question_text": "Do you have partnerships with NGOs or community organizations for social impact initiatives?",
-            "description": "Evaluate your collaboration with non-governmental organizations and community groups for social development programs.",
-            "question_type": "scale",
-            "esg_category": "social",
-            "canvas_section": "key_partnerships",
-            "standard": "GRI",
-            "reference_code": "GRI 413-1",
-            "scale_min": 1,
-            "scale_max": 5,
-            "scale_labels": {"1": "No partnerships", "2": "Occasional collaboration", "3": "Regular partnerships", "4": "Strategic alliances", "5": "Integrated partnership ecosystem"},
-            "weight": 1.2
-        },
-        {
-            "question_text": "How does your board governance structure incorporate ESG oversight in key partnerships?",
-            "description": "Assess the role of board committees in overseeing ESG aspects of strategic partnerships and supplier relationships.",
-            "question_type": "text",
-            "esg_category": "governance",
-            "canvas_section": "key_partnerships",
-            "standard": "EFRAG",
-            "reference_code": "EFRAG-GOV-3",
-            "weight": 1.3
-        },
-        
-        # KEY ACTIVITIES
-        {
-            "question_text": "What percentage of your core business activities have been assessed for environmental impact?",
-            "description": "Quantify the scope of environmental impact assessment across your key business operations and activities.",
-            "question_type": "numerical",
-            "esg_category": "environmental",
-            "canvas_section": "key_activities",
-            "standard": "GRI",
-            "reference_code": "GRI 103-2",
-            "weight": 1.4
-        },
-        {
-            "question_text": "How do you ensure fair labor practices across all key business activities?",
-            "description": "Describe your approach to maintaining ethical labor standards, worker rights, and fair employment practices.",
-            "question_type": "text",
-            "esg_category": "social",
-            "canvas_section": "key_activities",
-            "standard": "GRI",
-            "reference_code": "GRI 401-2",
-            "weight": 1.3
-        },
-        {
-            "question_text": "Does your organization have a formal ESG risk management process integrated into key activities?",
-            "description": "Evaluate the integration of ESG risk assessment and management into core business operations.",
-            "question_type": "boolean",
-            "esg_category": "governance",
-            "canvas_section": "key_activities",
-            "standard": "IFRS",
-            "reference_code": "IFRS-RISK-1",
-            "weight": 1.6
-        },
-        
-        # KEY RESOURCES
-        {
-            "question_text": "What is your organization's renewable energy usage as a percentage of total energy consumption?",
-            "description": "Measure your progress toward sustainable energy resources and renewable energy adoption.",
-            "question_type": "numerical",
-            "esg_category": "environmental",
-            "canvas_section": "key_resources",
-            "standard": "GRI",
-            "reference_code": "GRI 302-1",
-            "weight": 1.5
-        },
-        {
-            "question_text": "How do you invest in employee development and human capital resources?",
-            "description": "Assess your commitment to workforce development, training programs, and human resource investment.",
-            "question_type": "multiple_choice",
-            "esg_category": "social",
-            "canvas_section": "key_resources",
-            "standard": "GRI",
-            "reference_code": "GRI 404-1",
-            "options": ["Minimal training programs", "Basic skills development", "Comprehensive learning initiatives", "Leadership development programs", "Integrated talent management ecosystem"],
-            "weight": 1.2
-        },
-        {
-            "question_text": "Rate the effectiveness of your ESG governance infrastructure and resources.",
-            "description": "Evaluate the adequacy of governance systems, policies, and resources dedicated to ESG management.",
-            "question_type": "scale",
-            "esg_category": "governance",
-            "canvas_section": "key_resources",
-            "standard": "EFRAG",
-            "reference_code": "EFRAG-GOV-2",
-            "scale_min": 1,
-            "scale_max": 5,
-            "scale_labels": {"1": "Basic compliance only", "2": "Developing infrastructure", "3": "Established systems", "4": "Advanced governance", "5": "Best-in-class ESG infrastructure"},
-            "weight": 1.7
-        },
-        
-        # VALUE PROPOSITIONS
-        {
-            "question_text": "How does your core value proposition contribute to environmental sustainability?",
-            "description": "Assess how your products, services, or solutions directly contribute to environmental protection and sustainability goals.",
-            "question_type": "multiple_choice",
-            "esg_category": "environmental",
-            "canvas_section": "value_propositions",
-            "standard": "IFRS",
-            "reference_code": "IFRS-ENV-3",
-            "options": ["No environmental contribution", "Minimal environmental benefits", "Moderate sustainability features", "Significant environmental impact", "Core mission is environmental sustainability"],
-            "weight": 1.8
-        },
-        {
-            "question_text": "What social value does your organization create for communities and society?",
-            "description": "Describe the positive social impact your organization generates through its core value proposition.",
-            "question_type": "text",
-            "esg_category": "social",
-            "canvas_section": "value_propositions",
-            "standard": "GRI",
-            "reference_code": "GRI 203-1",
-            "weight": 1.4
-        },
-        {
-            "question_text": "Is sustainability integrated as a core component of your business value proposition?",
-            "description": "Evaluate whether ESG considerations are fundamental to your business model and value creation.",
-            "question_type": "boolean",
-            "esg_category": "governance",
-            "canvas_section": "value_propositions",
-            "standard": "EFRAG",
-            "reference_code": "EFRAG-STR-1",
-            "weight": 1.6
-        },
-        
-        # CUSTOMER RELATIONSHIPS (Stakeholder Relationships)
-        {
-            "question_text": "How do you engage stakeholders on environmental concerns and initiatives?",
-            "description": "Assess your stakeholder engagement processes regarding environmental issues, concerns, and collaborative initiatives.",
-            "question_type": "scale",
-            "esg_category": "environmental",
-            "canvas_section": "customer_relationships",
-            "standard": "GRI",
-            "reference_code": "GRI 102-43",
-            "scale_min": 1,
-            "scale_max": 5,
-            "scale_labels": {"1": "No engagement", "2": "Reactive communication", "3": "Regular updates", "4": "Active collaboration", "5": "Co-creation partnerships"},
-            "weight": 1.3
-        },
-        {
-            "question_text": "Describe your approach to building inclusive customer relationships and community engagement.",
-            "description": "Evaluate how you ensure diverse, equitable, and inclusive practices in customer and community relationships.",
-            "question_type": "text",
-            "esg_category": "social",
-            "canvas_section": "customer_relationships",
-            "standard": "GRI",
-            "reference_code": "GRI 413-2",
-            "weight": 1.2
-        },
-        {
-            "question_text": "Do you have transparent reporting mechanisms for stakeholder concerns and grievances?",
-            "description": "Assess the availability and effectiveness of channels for stakeholders to raise concerns and provide feedback.",
-            "question_type": "boolean",
-            "esg_category": "governance",
-            "canvas_section": "customer_relationships",
-            "standard": "GRI",
-            "reference_code": "GRI 102-17",
-            "weight": 1.4
-        },
-        
-        # CHANNELS (ESG Communication)
-        {
-            "question_text": "How effectively do you communicate your environmental performance and initiatives?",
-            "description": "Evaluate the quality, frequency, and transparency of your environmental reporting and communication.",
-            "question_type": "multiple_choice",
-            "esg_category": "environmental",
-            "canvas_section": "channels",
-            "standard": "GRI",
-            "reference_code": "GRI 102-45",
-            "options": ["No environmental reporting", "Basic annual disclosure", "Regular sustainability updates", "Comprehensive ESG reporting", "Real-time transparency platform"],
-            "weight": 1.1
-        },
-        {
-            "question_text": "What channels do you use to communicate social impact and community engagement?",
-            "description": "Assess your communication strategies for sharing social impact stories, community engagement, and stakeholder benefits.",
-            "question_type": "text",
-            "esg_category": "social",
-            "canvas_section": "channels",
-            "standard": "GRI",
-            "reference_code": "GRI 102-46",
-            "weight": 1.0
-        },
-        {
-            "question_text": "Rate the quality and accessibility of your ESG governance communication to stakeholders.",
-            "description": "Evaluate how well you communicate governance structures, policies, and decision-making processes to stakeholders.",
-            "question_type": "scale",
-            "esg_category": "governance",
-            "canvas_section": "channels",
-            "standard": "EFRAG",
-            "reference_code": "EFRAG-COM-1",
-            "scale_min": 1,
-            "scale_max": 5,
-            "scale_labels": {"1": "Limited disclosure", "2": "Basic reporting", "3": "Standard communication", "4": "Comprehensive transparency", "5": "Industry-leading disclosure"},
-            "weight": 1.2
-        },
-        
-        # CUSTOMER SEGMENTS (Stakeholder Groups)
-        {
-            "question_text": "How do different stakeholder groups benefit from your environmental initiatives?",
-            "description": "Analyze the environmental value and benefits your organization provides to various stakeholder segments.",
-            "question_type": "text",
-            "esg_category": "environmental",
-            "canvas_section": "customer_segments",
-            "standard": "GRI",
-            "reference_code": "GRI 102-40",
-            "weight": 1.1
-        },
-        {
-            "question_text": "What is your approach to identifying and engaging diverse stakeholder groups?",
-            "description": "Assess your stakeholder mapping process and engagement strategies for different demographic and interest groups.",
-            "question_type": "multiple_choice",
-            "esg_category": "social",
-            "canvas_section": "customer_segments",
-            "standard": "GRI",
-            "reference_code": "GRI 102-42",
-            "options": ["No formal stakeholder identification", "Basic stakeholder mapping", "Regular stakeholder analysis", "Dynamic stakeholder engagement", "Comprehensive stakeholder ecosystem management"],
-            "weight": 1.2
-        },
-        {
-            "question_text": "Do you have different governance communication strategies for different stakeholder segments?",
-            "description": "Evaluate whether you tailor governance communication and engagement based on different stakeholder needs and interests.",
-            "question_type": "boolean",
-            "esg_category": "governance",
-            "canvas_section": "customer_segments",
-            "standard": "EFRAG",
-            "reference_code": "EFRAG-STK-1",
-            "weight": 1.0
-        },
-        
-        # COST STRUCTURE (ESG Costs)
-        {
-            "question_text": "What percentage of your annual budget is allocated to environmental sustainability initiatives?",
-            "description": "Quantify your financial commitment to environmental protection, sustainability projects, and green investments.",
-            "question_type": "numerical",
-            "esg_category": "environmental",
-            "canvas_section": "cost_structure",
-            "standard": "IFRS",
-            "reference_code": "IFRS-INV-1",
-            "weight": 1.3
-        },
-        {
-            "question_text": "How do you invest in social programs and community development?",
-            "description": "Describe your financial commitments to social initiatives, community programs, and employee welfare investments.",
-            "question_type": "scale",
-            "esg_category": "social",
-            "canvas_section": "cost_structure",
-            "standard": "GRI",
-            "reference_code": "GRI 201-1",
-            "scale_min": 1,
-            "scale_max": 5,
-            "scale_labels": {"1": "Minimal social investment", "2": "Basic compliance costs", "3": "Moderate social programs", "4": "Significant community investment", "5": "Comprehensive social impact budget"},
-            "weight": 1.2
-        },
-        {
-            "question_text": "Are ESG-related costs integrated into your strategic financial planning and governance?",
-            "description": "Assess whether ESG investments and costs are considered in strategic planning, budgeting, and governance decisions.",
-            "question_type": "boolean",
-            "esg_category": "governance",
-            "canvas_section": "cost_structure",
-            "standard": "EFRAG",
-            "reference_code": "EFRAG-FIN-1",
-            "weight": 1.4
-        },
-        
-        # REVENUE STREAMS (ESG Value & Benefits)
-        {
-            "question_text": "What percentage of your revenue comes from environmentally sustainable products or services?",
-            "description": "Quantify the proportion of your business revenue that is directly tied to environmental sustainability and green solutions.",
-            "question_type": "numerical",
-            "esg_category": "environmental",
-            "canvas_section": "revenue_streams",
-            "standard": "IFRS",
-            "reference_code": "IFRS-REV-1",
-            "weight": 1.6
-        },
-        {
-            "question_text": "How do your social impact initiatives contribute to business value and revenue?",
-            "description": "Assess the business case and revenue implications of your social responsibility and community engagement programs.",
-            "question_type": "multiple_choice",
-            "esg_category": "social",
-            "canvas_section": "revenue_streams",
-            "standard": "GRI",
-            "reference_code": "GRI 203-2",
-            "options": ["No measurable business value", "Indirect brand benefits", "Customer loyalty and retention", "New market opportunities", "Direct revenue from social impact products/services"],
-            "weight": 1.3
-        },
-        {
-            "question_text": "Do you measure and report the financial returns on ESG investments and governance improvements?",
-            "description": "Evaluate your ability to quantify and communicate the financial benefits of ESG initiatives and governance enhancements.",
-            "question_type": "boolean",
-            "esg_category": "governance",
-            "canvas_section": "revenue_streams",
-            "standard": "EFRAG",
-            "reference_code": "EFRAG-ROI-1",
-            "weight": 1.5
-        }
-    ]
-    
-    # Insert comprehensive questions
-    for q_data in comprehensive_questions:
-        question_obj = Question(**q_data)
-        question_data = prepare_for_mongo(question_obj.dict())
-        await db.questions.insert_one(question_data)
-    
-    # Create sample organizations with more detail
-    sample_orgs = [
-        {
-            "name": "GreenTech Innovations Corp",
-            "industry": "Technology", 
-            "size": "Large",
-            "country": "United States",
-            "headquarters": "San Francisco, CA",
-            "website": "https://greentech-innovations.com",
-            "employee_count": 2500,
-            "annual_revenue": "$500M - $1B",
-            "stock_symbol": "GTIC"
-        },
-        {
-            "name": "Sustainable Manufacturing Ltd",
-            "industry": "Manufacturing",
-            "size": "Medium", 
-            "country": "Germany",
-            "headquarters": "Munich, Germany",
-            "website": "https://sustainable-mfg.de",
-            "employee_count": 850,
-            "annual_revenue": "$100M - $500M"
-        },
-        {
-            "name": "EcoFinance Solutions",
-            "industry": "Financial Services",
-            "size": "Enterprise",
-            "country": "United Kingdom", 
-            "headquarters": "London, UK",
-            "website": "https://ecofinance.co.uk",
-            "employee_count": 5200,
-            "annual_revenue": "$1B+",
-            "stock_symbol": "ECFS"
-        }
-    ]
-    
-    created_orgs = []
-    for org_data in sample_orgs:
-        org_obj = Organization(**org_data)
-        org_mongo_data = prepare_for_mongo(org_obj.dict())
-        await db.organizations.insert_one(org_mongo_data)
-        created_orgs.append(org_obj)
-    
-    return {
-        "message": f"Initialized {len(comprehensive_questions)} comprehensive questions across all canvas sections and {len(sample_orgs)} sample organizations with HTML report generation enabled",
-        "questions_per_section": 3,
-        "total_canvas_sections": 9,
-        "organizations_created": len(sample_orgs),
-        "esg_categories": ["Environmental", "Social", "Governance"],
-        "standards_covered": ["GRI", "EFRAG", "IFRS"],
-        "html_reports_available": ["Comprehensive Report", "Executive Summary"]
-    }
-
-# HTML Report Generation Routes
-@api_router.get("/reports/html/{organization_id}/comprehensive", response_class=HTMLResponse)
-async def generate_comprehensive_html_report(organization_id: str):
-    """Generate comprehensive HTML report for an organization"""
+    """Generate comprehensive HTML report including double materiality and financial impact"""
     
     # Get organization data
     org = await db.organizations.find_one({"id": organization_id})
@@ -1625,6 +975,10 @@ async def generate_comprehensive_html_report(organization_id: str):
     dashboard_response = await get_dashboard_data(organization_id)
     questions = await db.questions.find().to_list(1000)
     answers = await db.answers.find({"organization_id": organization_id}).to_list(1000)
+    
+    # Get materiality and financial data
+    materiality_assessments = await db.materiality_assessments.find({"organization_id": organization_id}).to_list(1000)
+    financial_impacts = await db.financial_impacts.find({"organization_id": organization_id}).to_list(1000)
     
     # Create answer lookup
     answer_lookup = {a["question_id"]: a for a in answers}
@@ -1646,6 +1000,76 @@ async def generate_comprehensive_html_report(organization_id: str):
             </div>
         </div>
         """
+    
+    # Generate materiality assessment HTML
+    materiality_html = ""
+    if materiality_assessments:
+        materiality_html = """
+        <div class="section">
+            <h2 class="section-title">Double Materiality Assessment</h2>
+            <div class="materiality-grid">
+        """
+        for assessment in materiality_assessments:
+            materiality_html += f"""
+            <div class="materiality-item">
+                <h4>{assessment['topic']}</h4>
+                <div class="materiality-scores">
+                    <div class="score-item">
+                        <span>Impact Materiality:</span>
+                        <span class="score">{assessment['impact_materiality_score']:.1f}/10</span>
+                    </div>
+                    <div class="score-item">
+                        <span>Financial Materiality:</span>
+                        <span class="score">{assessment['financial_materiality_score']:.1f}/10</span>
+                    </div>
+                    <div class="score-item double-materiality">
+                        <span>Double Materiality:</span>
+                        <span class="score">{assessment['double_materiality_score']:.1f}/10</span>
+                    </div>
+                </div>
+                {"<div class='ifrs-badge'>IFRS S1 Relevant</div>" if assessment.get('ifrs_s1_relevant') else ""}
+                {"<div class='ifrs-badge'>IFRS S2 Relevant</div>" if assessment.get('ifrs_s2_relevant') else ""}
+            </div>
+            """
+        materiality_html += "</div></div>"
+    
+    # Generate financial impact HTML
+    financial_html = ""
+    if financial_impacts:
+        financial_html = """
+        <div class="section">
+            <h2 class="section-title">Financial Impact Analysis</h2>
+            <div class="financial-impacts">
+        """
+        for impact in financial_impacts:
+            impact_value = impact['projected_value'] - impact['current_value']
+            financial_html += f"""
+            <div class="financial-impact-item">
+                <h4>{impact['esg_topic']}</h4>
+                <div class="impact-details">
+                    <div class="impact-metric">
+                        <span>Impact Type:</span>
+                        <span>{impact['impact_type'].replace('_', ' ').title()}</span>
+                    </div>
+                    <div class="impact-metric">
+                        <span>Financial Impact:</span>
+                        <span class="impact-value {'positive' if impact_value > 0 else 'negative'}">
+                            ${impact_value:,.0f}
+                        </span>
+                    </div>
+                    <div class="impact-metric">
+                        <span>Time Horizon:</span>
+                        <span>{impact['time_horizon']}</span>
+                    </div>
+                    <div class="impact-metric">
+                        <span>Confidence:</span>
+                        <span class="confidence-{impact['confidence_level'].lower()}">{impact['confidence_level']}</span>
+                    </div>
+                </div>
+                {"<div class='disclosure-required'>IFRS Disclosure Required</div>" if impact['disclosure_requirement'] else ""}
+            </div>
+            """
+        financial_html += "</div></div>"
     
     # Generate questions HTML
     questions_html = ""
@@ -1670,7 +1094,10 @@ async def generate_comprehensive_html_report(organization_id: str):
                 <span class="badge standard">{question['standard']}</span>
                 {f'<span class="badge standard">{question.get("reference_code", "")}</span>' if question.get("reference_code") else ''}
                 <span class="badge standard">Weight: {question['weight']}</span>
+                {"<span class='badge financial'>Financial Impact</span>" if question.get('financial_relevance') else ""}
+                {"<span class='badge ifrs'>IFRS Required</span>" if question.get('ifrs_disclosure_requirement') else ""}
             </div>
+            {f"<div class='financial-estimate'>Estimated Financial Impact: ${answer.get('financial_impact_estimate', 0):,.0f}</div>" if answer and answer.get('financial_impact_estimate') else ""}
         </div>
         """
     
@@ -1686,12 +1113,20 @@ async def generate_comprehensive_html_report(organization_id: str):
         remaining = dashboard_response['total_questions'] - dashboard_response['answered_questions']
         recommendations.append(f"Complete remaining {remaining} questions for comprehensive assessment")
     
+    # Add materiality-specific recommendations
+    if dashboard_response["materiality_summary"]["high_priority"] > 0:
+        recommendations.append(f"Prioritize {dashboard_response['materiality_summary']['high_priority']} high-priority materiality topics")
+    
+    # Add IFRS-specific recommendations
+    if dashboard_response["ifrs_compliance"]["compliance_percentage"] < 100:
+        recommendations.append(f"Improve IFRS compliance from {dashboard_response['ifrs_compliance']['compliance_percentage']:.0f}% to meet disclosure requirements")
+    
     recommendations_html = ""
     for rec in recommendations:
         recommendations_html += f'<div class="recommendation-item">{rec}</div>'
     
-    # HTML Template
-    html_template = get_comprehensive_html_template()
+    # HTML Template with enhanced styling for materiality and financial impact
+    html_template = get_enhanced_comprehensive_html_template()
     
     # Format template
     html_report = html_template.format(
@@ -1706,79 +1141,24 @@ async def generate_comprehensive_html_report(organization_id: str):
         social_score=f"{dashboard_response['esg_scores']['social']:.1f}",
         governance_score=f"{dashboard_response['esg_scores']['governance']:.1f}",
         canvas_sections_html=canvas_sections_html,
+        materiality_html=materiality_html,
+        financial_html=financial_html,
         questions_html=questions_html,
-        recommendations_html=recommendations_html
+        recommendations_html=recommendations_html,
+        total_financial_impact=f"{dashboard_response['financial_summary']['total_projected_impact']:,.0f}",
+        ifrs_compliance_percentage=f"{dashboard_response['ifrs_compliance']['compliance_percentage']:.0f}",
+        high_priority_topics=dashboard_response['materiality_summary']['high_priority']
     )
     
     return HTMLResponse(content=html_report)
 
-@api_router.get("/reports/html/{organization_id}/executive", response_class=HTMLResponse)
-async def generate_executive_summary_html(organization_id: str):
-    """Generate executive summary HTML report for an organization"""
-    
-    # Get organization data
-    org = await db.organizations.find_one({"id": organization_id})
-    if not org:
-        raise HTTPException(status_code=404, detail="Organization not found")
-    
-    # Get dashboard data
-    dashboard_response = await get_dashboard_data(organization_id)
-    
-    # Generate key findings
-    key_findings = []
-    if dashboard_response["esg_scores"]["environmental"] >= 80:
-        key_findings.append("Strong environmental performance with comprehensive sustainability practices")
-    elif dashboard_response["esg_scores"]["environmental"] >= 60:
-        key_findings.append("Moderate environmental performance with room for improvement in sustainability initiatives")
-    else:
-        key_findings.append("Environmental performance requires significant attention and investment")
-    
-    if dashboard_response["overall_score"] >= 75:
-        key_findings.append("Above-average overall ESG performance demonstrates commitment to sustainability")
-    else:
-        key_findings.append("ESG performance is below industry standards and requires strategic improvement")
-    
-    key_findings_html = ""
-    for finding in key_findings:
-        key_findings_html += f'<div class="finding-item">{finding}</div>'
-    
-    # Generate priority actions
-    priority_actions = []
-    esg_scores = dashboard_response["esg_scores"]
-    lowest_score = min(esg_scores, key=esg_scores.get)
-    priority_actions.append(f"Prioritize improvements in {lowest_score} performance")
-    priority_actions.append("Complete comprehensive ESG assessment for detailed insights")
-    priority_actions.append("Develop ESG strategy aligned with business objectives")
-    
-    priority_actions_html = ""
-    for action in priority_actions:
-        priority_actions_html += f'<div class="recommendation-item">{action}</div>'
-    
-    # HTML Template
-    html_template = get_executive_summary_template()
-    
-    # Format template
-    html_report = html_template.format(
-        organization_name=org["name"],
-        report_date=datetime.now().strftime("%B %d, %Y"),
-        overall_score=f"{dashboard_response['overall_score']:.1f}",
-        environmental_score=f"{dashboard_response['esg_scores']['environmental']:.1f}",
-        social_score=f"{dashboard_response['esg_scores']['social']:.1f}",
-        governance_score=f"{dashboard_response['esg_scores']['governance']:.1f}",
-        key_findings_html=key_findings_html,
-        priority_actions_html=priority_actions_html
-    )
-    
-    return HTMLResponse(content=html_report)
-
-# HTML Template Functions
-def get_comprehensive_html_template():
+def get_enhanced_comprehensive_html_template():
     return """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESG Comprehensive Report - {organization_name}</title>
+    <title>ESG Comprehensive Report with Double Materiality & IFRS - {organization_name}</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1824,6 +1204,47 @@ def get_comprehensive_html_template():
         .score-fill.environmental {{ background: linear-gradient(90deg, #10b981, #34d399); }}
         .score-fill.social {{ background: linear-gradient(90deg, #3b82f6, #60a5fa); }}
         .score-fill.governance {{ background: linear-gradient(90deg, #8b5cf6, #a78bfa); }}
+        
+        /* Double Materiality Styling */
+        .materiality-grid {{
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+        }}
+        .materiality-item {{
+            background: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid #667eea;
+        }}
+        .materiality-scores {{ margin-top: 15px; }}
+        .score-item {{
+            display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px 0;
+        }}
+        .score-item.double-materiality {{
+            border-top: 2px solid #667eea; padding-top: 10px; margin-top: 10px; font-weight: bold;
+        }}
+        .ifrs-badge {{
+            display: inline-block; background: #3b82f6; color: white; padding: 4px 8px;
+            border-radius: 12px; font-size: 0.8em; margin-top: 10px; margin-right: 5px;
+        }}
+        
+        /* Financial Impact Styling */
+        .financial-impacts {{
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;
+        }}
+        .financial-impact-item {{
+            background: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid #f59e0b;
+        }}
+        .impact-details {{ margin-top: 15px; }}
+        .impact-metric {{
+            display: flex; justify-content: space-between; margin-bottom: 8px; padding: 5px 0;
+        }}
+        .impact-value.positive {{ color: #10b981; font-weight: bold; }}
+        .impact-value.negative {{ color: #ef4444; font-weight: bold; }}
+        .confidence-high {{ color: #10b981; font-weight: bold; }}
+        .confidence-medium {{ color: #f59e0b; font-weight: bold; }}
+        .confidence-low {{ color: #ef4444; font-weight: bold; }}
+        .disclosure-required {{
+            background: #ef4444; color: white; padding: 4px 8px; border-radius: 12px;
+            font-size: 0.8em; margin-top: 10px; display: inline-block;
+        }}
+        
         .canvas-section {{
             background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px;
         }}
@@ -1836,13 +1257,19 @@ def get_comprehensive_html_template():
         }}
         .question-item.answered {{ border-left-color: #10b981; }}
         .question-text {{ font-weight: 600; color: #333; margin-bottom: 8px; }}
-        .question-answer {{ color: #666; font-style: italic; }}
+        .question-answer {{ color: #666; font-style: italic; margin-bottom: 10px; }}
         .question-meta {{ margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }}
         .badge {{ display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 500; }}
         .badge.environmental {{ background: #dcfce7; color: #166534; }}
         .badge.social {{ background: #dbeafe; color: #1e40af; }}
         .badge.governance {{ background: #e9d5ff; color: #7c2d12; }}
         .badge.standard {{ background: #f3f4f6; color: #374151; }}
+        .badge.financial {{ background: #fef3c7; color: #92400e; }}
+        .badge.ifrs {{ background: #ef4444; color: white; }}
+        .financial-estimate {{
+            background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px; border-radius: 4px;
+            color: #166534; font-weight: 600; margin-top: 10px;
+        }}
         .recommendations {{
             background: #fef3c7; border-left: 5px solid #f59e0b; padding: 20px;
             border-radius: 8px; margin-bottom: 30px;
@@ -1866,6 +1293,7 @@ def get_comprehensive_html_template():
         <div class="header">
             <h1>ESG Sustainability Report</h1>
             <p>{organization_name} • {industry} • {report_date}</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">Double Materiality Assessment & IFRS Compliance Report</p>
         </div>
         <div class="report-meta">
             <div class="meta-item">
@@ -1877,8 +1305,16 @@ def get_comprehensive_html_template():
                 <div class="meta-value">{completion_percentage}%</div>
             </div>
             <div class="meta-item">
-                <div class="meta-label">Questions Answered</div>
-                <div class="meta-value">{answered_questions}/{total_questions}</div>
+                <div class="meta-label">Financial Impact</div>
+                <div class="meta-value">${total_financial_impact}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">IFRS Compliance</div>
+                <div class="meta-value">{ifrs_compliance_percentage}%</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">High Priority Topics</div>
+                <div class="meta-value">{high_priority_topics}</div>
             </div>
             <div class="meta-item">
                 <div class="meta-label">Report Generated</div>
@@ -1914,6 +1350,8 @@ def get_comprehensive_html_template():
                 </div>
             </div>
         </div>
+        {materiality_html}
+        {financial_html}
         <div class="section">
             <h2 class="section-title">Canvas Section Analysis</h2>
             {canvas_sections_html}
@@ -1928,115 +1366,287 @@ def get_comprehensive_html_template():
         </div>
         <div class="footer">
             <p><strong>ESG Canvas Reporter</strong> - Advanced Sustainability Analytics Platform</p>
-            <p>Report generated on {report_date} • Based on GRI, EFRAG, and IFRS standards</p>
+            <p>Report generated on {report_date} • Based on GRI, EFRAG, IFRS S1/S2 standards with Double Materiality Assessment</p>
         </div>
     </div>
 </body>
 </html>"""
 
-def get_executive_summary_template():
-    return """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESG Executive Summary - {organization_name}</title>
-    <style>
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6; color: #333; margin: 0; padding: 20px; background: white;
-        }}
-        .container {{ max-width: 800px; margin: 0 auto; }}
-        .header {{
-            text-align: center; margin-bottom: 40px; padding-bottom: 20px;
-            border-bottom: 3px solid #667eea;
-        }}
-        .header h1 {{ color: #667eea; margin-bottom: 10px; }}
-        .executive-summary {{
-            background: #f8f9fa; padding: 30px; border-radius: 12px; margin-bottom: 30px;
-        }}
-        .summary-grid {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px; margin-bottom: 30px;
-        }}
-        .summary-card {{
-            background: white; padding: 20px; border-radius: 8px; text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }}
-        .summary-score {{ font-size: 2.5em; font-weight: bold; margin-bottom: 10px; }}
-        .summary-score.environmental {{ color: #10b981; }}
-        .summary-score.social {{ color: #3b82f6; }}
-        .summary-score.governance {{ color: #8b5cf6; }}
-        .summary-score.overall {{ color: #667eea; }}
-        .key-findings {{ margin-bottom: 30px; }}
-        .finding-item {{
-            margin-bottom: 15px; padding: 15px; background: #f8f9fa;
-            border-radius: 8px; border-left: 4px solid #667eea;
-        }}
-        .priority-actions {{
-            background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 5px solid #f59e0b;
-        }}
-        .recommendation-item {{ margin-bottom: 10px; padding-left: 20px; position: relative; }}
-        .recommendation-item:before {{ content: "•"; position: absolute; left: 0; color: #f59e0b; font-weight: bold; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>ESG Executive Summary</h1>
-            <h2>{organization_name}</h2>
-            <p>{report_date}</p>
-        </div>
-        <div class="executive-summary">
-            <h3>Executive Overview</h3>
-            <p>This executive summary provides a high-level overview of {organization_name}'s ESG performance based on our comprehensive sustainability assessment using business model canvas methodology and international standards (GRI, EFRAG, IFRS).</p>
-        </div>
-        <div class="summary-grid">
-            <div class="summary-card">
-                <div class="summary-score overall">{overall_score}</div>
-                <h4>Overall ESG Score</h4>
-                <p>Out of 100</p>
-            </div>
-            <div class="summary-card">
-                <div class="summary-score environmental">{environmental_score}</div>
-                <h4>Environmental</h4>
-                <p>Sustainability Impact</p>
-            </div>
-            <div class="summary-card">
-                <div class="summary-score social">{social_score}</div>
-                <h4>Social</h4>
-                <p>Community & Stakeholders</p>
-            </div>
-            <div class="summary-card">
-                <div class="summary-score governance">{governance_score}</div>
-                <h4>Governance</h4>
-                <p>Ethics & Management</p>
-            </div>
-        </div>
-        <div class="key-findings">
-            <h3>Key Findings</h3>
-            {key_findings_html}
-        </div>
-        <div class="priority-actions">
-            <h3>Priority Actions</h3>
-            {priority_actions_html}
-        </div>
-    </div>
-</body>
-</html>"""
-
-# Canvas section definitions
-CANVAS_SECTIONS = {
-    "key_partnerships": {"title": "Key Partnerships", "description": "Sustainability partnerships and supplier relationships"},
-    "key_activities": {"title": "Key Activities", "description": "Core ESG activities and environmental practices"},
-    "key_resources": {"title": "Key Resources", "description": "ESG governance, policies, and sustainable resources"},
-    "value_propositions": {"title": "Value Propositions", "description": "ESG value creation and sustainability benefits"},
-    "customer_relationships": {"title": "Stakeholder Relationships", "description": "Community engagement and stakeholder management"},
-    "channels": {"title": "ESG Communication", "description": "Sustainability reporting and communication channels"},
-    "customer_segments": {"title": "Stakeholder Groups", "description": "Different stakeholder segments and their ESG interests"},
-    "cost_structure": {"title": "ESG Costs", "description": "Sustainability investments and ESG-related costs"},
-    "revenue_streams": {"title": "ESG Value & Benefits", "description": "Revenue and benefits from ESG initiatives"}
-}
+# Initialize comprehensive sample data with double materiality and IFRS
+@api_router.post("/initialize-comprehensive-data")
+async def initialize_comprehensive_sample_data():
+    """Initialize comprehensive sample data with double materiality and IFRS integration"""
+    
+    # Check if comprehensive data already exists
+    existing_questions = await db.questions.count_documents({})
+    if existing_questions >= 30:  # Enhanced question count
+        return {"message": "Comprehensive sample data already exists"}
+    
+    # Clear existing data and add comprehensive set
+    await db.questions.delete_many({})
+    await db.organizations.delete_many({})
+    await db.materiality_assessments.delete_many({})
+    await db.financial_impacts.delete_many({})
+    await db.ifrs_mappings.delete_many({})
+    
+    # Enhanced comprehensive questions with IFRS integration
+    comprehensive_questions = [
+        # Environmental questions with IFRS S2 relevance
+        {
+            "question_text": "What percentage of your revenue comes from activities aligned with the EU Taxonomy for sustainable activities?",
+            "description": "Assess alignment with EU Taxonomy criteria for environmentally sustainable economic activities, required for IFRS S2 disclosures.",
+            "question_type": "numerical",
+            "esg_category": "environmental",
+            "canvas_section": "revenue_streams",
+            "standard": "IFRS_S2",
+            "reference_code": "IFRS S2-14",
+            "weight": 2.0,
+            "financial_relevance": True,
+            "materiality_topic": "Climate Change",
+            "ifrs_disclosure_requirement": True
+        },
+        {
+            "question_text": "What are your Scope 1 and Scope 2 GHG emissions in metric tons CO2 equivalent?",
+            "description": "Quantify direct and indirect greenhouse gas emissions as required by IFRS S2 climate-related disclosures.",
+            "question_type": "numerical",
+            "esg_category": "environmental",
+            "canvas_section": "key_activities",
+            "standard": "IFRS_S2",
+            "reference_code": "IFRS S2-21",
+            "weight": 2.5,
+            "financial_relevance": True,
+            "materiality_topic": "Climate Change",
+            "ifrs_disclosure_requirement": True
+        },
+        {
+            "question_text": "How do you evaluate and select suppliers based on environmental sustainability criteria?",
+            "description": "Assess your supplier selection process including environmental impact assessments, certifications, and sustainability commitments.",
+            "question_type": "multiple_choice",
+            "esg_category": "environmental",
+            "canvas_section": "key_partnerships",
+            "standard": "GRI",
+            "reference_code": "GRI 308-1",
+            "options": ["No evaluation process", "Basic environmental checklist", "Comprehensive sustainability assessment", "Third-party certified evaluation", "Integrated ESG partnership strategy"],
+            "weight": 1.5,
+            "financial_relevance": False,
+            "materiality_topic": "Supply Chain Sustainability"
+        },
+        # Social questions with financial materiality
+        {
+            "question_text": "What is your employee turnover rate and associated replacement costs?",
+            "description": "Quantify human capital metrics including turnover rates and financial impact of employee retention challenges.",
+            "question_type": "numerical",
+            "esg_category": "social",
+            "canvas_section": "key_resources",
+            "standard": "IFRS_S1",
+            "reference_code": "IFRS S1-20",
+            "weight": 1.8,
+            "financial_relevance": True,
+            "materiality_topic": "Human Capital Management",
+            "ifrs_disclosure_requirement": True
+        },
+        {
+            "question_text": "Do you have partnerships with NGOs or community organizations for social impact initiatives?",
+            "description": "Evaluate your collaboration with non-governmental organizations and community groups for social development programs.",
+            "question_type": "scale",
+            "esg_category": "social",
+            "canvas_section": "key_partnerships",
+            "standard": "GRI",
+            "reference_code": "GRI 413-1",
+            "scale_min": 1,
+            "scale_max": 5,
+            "scale_labels": {"1": "No partnerships", "2": "Occasional collaboration", "3": "Regular partnerships", "4": "Strategic alliances", "5": "Integrated partnership ecosystem"},
+            "weight": 1.2,
+            "financial_relevance": False,
+            "materiality_topic": "Community Relations"
+        },
+        # Governance questions with IFRS S1 relevance
+        {
+            "question_text": "What percentage of your board members have sustainability or ESG expertise?",
+            "description": "Assess board governance capability in sustainability oversight as required for IFRS S1 governance disclosures.",
+            "question_type": "numerical",
+            "esg_category": "governance",
+            "canvas_section": "key_resources",
+            "standard": "IFRS_S1",
+            "reference_code": "IFRS S1-6",
+            "weight": 1.7,
+            "financial_relevance": True,
+            "materiality_topic": "Board Oversight",
+            "ifrs_disclosure_requirement": True
+        },
+        {
+            "question_text": "How does your board governance structure incorporate ESG oversight in key partnerships?",
+            "description": "Assess the role of board committees in overseeing ESG aspects of strategic partnerships and supplier relationships.",
+            "question_type": "text",
+            "esg_category": "governance",
+            "canvas_section": "key_partnerships",
+            "standard": "EFRAG",
+            "reference_code": "EFRAG-GOV-3",
+            "weight": 1.3,
+            "financial_relevance": False,
+            "materiality_topic": "Board Oversight"
+        }
+    ]
+    
+    # Insert comprehensive questions
+    for q_data in comprehensive_questions:
+        question_obj = Question(**q_data)
+        question_data = prepare_for_mongo(question_obj.dict())
+        await db.questions.insert_one(question_data)
+    
+    # Create enhanced sample organizations with IFRS details
+    sample_orgs = [
+        {
+            "name": "GreenTech Innovations Corp",
+            "industry": "Technology", 
+            "size": "Large",
+            "country": "United States",
+            "headquarters": "San Francisco, CA",
+            "website": "https://greentech-innovations.com",
+            "employee_count": 2500,
+            "annual_revenue": "$500M - $1B",
+            "annual_revenue_numeric": 750000000,
+            "stock_symbol": "GTIC",
+            "base_currency": "USD",
+            "fiscal_year_end": "December 31",
+            "ifrs_reporter": True,
+            "sustainability_reporting_framework": ["GRI", "IFRS S1", "IFRS S2", "TCFD"]
+        },
+        {
+            "name": "Sustainable Manufacturing Ltd",
+            "industry": "Manufacturing",
+            "size": "Medium", 
+            "country": "Germany",
+            "headquarters": "Munich, Germany",
+            "website": "https://sustainable-mfg.de",
+            "employee_count": 850,
+            "annual_revenue": "€100M - €500M",
+            "annual_revenue_numeric": 300000000,
+            "base_currency": "EUR",
+            "fiscal_year_end": "December 31",
+            "ifrs_reporter": True,
+            "sustainability_reporting_framework": ["GRI", "EFRAG", "IFRS S1", "IFRS S2"]
+        },
+        {
+            "name": "EcoFinance Solutions",
+            "industry": "Financial Services",
+            "size": "Enterprise",
+            "country": "United Kingdom", 
+            "headquarters": "London, UK",
+            "website": "https://ecofinance.co.uk",
+            "employee_count": 5200,
+            "annual_revenue": "$1B+",
+            "annual_revenue_numeric": 1500000000,
+            "stock_symbol": "ECFS",
+            "base_currency": "GBP",
+            "fiscal_year_end": "March 31",
+            "ifrs_reporter": True,
+            "sustainability_reporting_framework": ["GRI", "SASB", "IFRS S1", "IFRS S2", "TCFD"]
+        }
+    ]
+    
+    created_orgs = []
+    for org_data in sample_orgs:
+        org_obj = Organization(**org_data)
+        org_mongo_data = prepare_for_mongo(org_obj.dict())
+        await db.organizations.insert_one(org_mongo_data)
+        created_orgs.append(org_obj)
+    
+    # Create sample materiality assessments
+    materiality_topics = [
+        {
+            "topic": "Climate Change",
+            "description": "Physical and transition risks related to climate change",
+            "esg_category": "environmental",
+            "impact_materiality_score": 8.5,
+            "financial_materiality_score": 9.2,
+            "ifrs_s1_relevant": True,
+            "ifrs_s2_relevant": True
+        },
+        {
+            "topic": "Human Capital Management",
+            "description": "Employee retention, development, and well-being",
+            "esg_category": "social",
+            "impact_materiality_score": 7.8,
+            "financial_materiality_score": 8.1,
+            "ifrs_s1_relevant": True,
+            "ifrs_s2_relevant": False
+        },
+        {
+            "topic": "Data Privacy & Security",
+            "description": "Protection of customer and employee data",
+            "esg_category": "governance",
+            "impact_materiality_score": 6.5,
+            "financial_materiality_score": 8.8,
+            "ifrs_s1_relevant": True,
+            "ifrs_s2_relevant": False
+        }
+    ]
+    
+    for org in created_orgs:
+        for topic_data in materiality_topics:
+            topic_data["organization_id"] = org.id
+            materiality_obj = MaterialityAssessment(**{
+                **topic_data,
+                "double_materiality_score": calculate_double_materiality_score(
+                    topic_data["impact_materiality_score"],
+                    topic_data["financial_materiality_score"]
+                )
+            })
+            materiality_data = prepare_for_mongo(materiality_obj.dict())
+            await db.materiality_assessments.insert_one(materiality_data)
+    
+    # Create sample financial impact assessments
+    financial_impacts = [
+        {
+            "esg_topic": "Climate Change Transition",
+            "impact_type": "cost_impact",
+            "financial_metric": "CAPEX",
+            "current_value": 10000000,
+            "projected_value": 25000000,
+            "time_horizon": "Medium-term (3-5 years)",
+            "confidence_level": "High",
+            "assumptions": ["Carbon pricing increases", "Renewable energy transition"],
+            "ifrs_standard_reference": "IFRS S2-21",
+            "disclosure_requirement": True
+        },
+        {
+            "esg_topic": "Employee Retention Programs",
+            "impact_type": "cost_impact",
+            "financial_metric": "OPEX",
+            "current_value": 5000000,
+            "projected_value": 8000000,
+            "time_horizon": "Short-term (1-2 years)",
+            "confidence_level": "Medium",
+            "assumptions": ["Talent market competition", "Remote work investments"],
+            "ifrs_standard_reference": "IFRS S1-20",
+            "disclosure_requirement": True
+        }
+    ]
+    
+    for org in created_orgs:
+        for impact_data in financial_impacts:
+            impact_data["organization_id"] = org.id
+            impact_obj = FinancialImpactAssessment(**impact_data)
+            impact_mongo_data = prepare_for_mongo(impact_obj.dict())
+            await db.financial_impacts.insert_one(impact_mongo_data)
+    
+    return {
+        "message": f"Initialized {len(comprehensive_questions)} enhanced questions with double materiality and IFRS integration, {len(sample_orgs)} organizations, {len(materiality_topics)} materiality topics per org, and {len(financial_impacts)} financial impacts per org",
+        "questions_count": len(comprehensive_questions),
+        "organizations_created": len(sample_orgs),
+        "materiality_topics_per_org": len(materiality_topics),
+        "financial_impacts_per_org": len(financial_impacts),
+        "esg_categories": ["Environmental", "Social", "Governance"],
+        "standards_covered": ["GRI", "EFRAG", "IFRS S1", "IFRS S2", "SASB", "TCFD"],
+        "features": [
+            "Double Materiality Assessment",
+            "Financial Impact Analysis", 
+            "IFRS S1/S2 Compliance Mapping",
+            "Enhanced HTML Reports",
+            "Advanced Analytics Dashboard"
+        ]
+    }
 
 # Include the router in the main app
 app.include_router(api_router)
