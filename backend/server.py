@@ -2801,6 +2801,378 @@ async def initialize_comprehensive_sample_data():
         ]
     }
 
+# Report Upload and Comparison Models
+class UploadedReport(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    file_name: str
+    file_path: str
+    file_type: str  # PDF, DOCX, etc.
+    upload_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    processed: bool = False
+    extracted_data: Dict[str, Any] = {}
+    comparison_results: Dict[str, Any] = {}
+    created_by: Optional[str] = None
+
+class ReportComparison(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    uploaded_report_id: str
+    current_assessment_id: Optional[str] = None
+    comparison_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    differences: Dict[str, Any] = {}
+    recommendations: List[str] = []
+    score_comparison: Dict[str, float] = {}
+    gap_analysis: Dict[str, Any] = {}
+
+# Helper functions for PDF processing
+async def extract_pdf_data(file_path: str) -> Dict[str, Any]:
+    """Extract data from PDF file"""
+    try:
+        extracted_data = {
+            "text_content": "",
+            "esg_metrics": {},
+            "financial_data": {},
+            "sustainability_indicators": {},
+            "compliance_references": []
+        }
+        
+        with open(file_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            text_content = ""
+            
+            for page in pdf_reader.pages:
+                text_content += page.extract_text() + "\n"
+            
+            extracted_data["text_content"] = text_content
+            
+            # Extract ESG-related metrics using pattern matching
+            esg_patterns = {
+                "co2_emissions": r'CO2.*?(\d+(?:\.\d+)?)\s*(?:tons?|tonnes?|mt|kg)',
+                "energy_consumption": r'energy.*?(\d+(?:\.\d+)?)\s*(?:kwh|mwh|gwh)',
+                "water_usage": r'water.*?(\d+(?:\.\d+)?)\s*(?:liters?|gallons?|m3)',
+                "waste_generated": r'waste.*?(\d+(?:\.\d+)?)\s*(?:tons?|tonnes?|kg)',
+                "employee_count": r'employees?\s*:?\s*(\d+)',
+                "diversity_percentage": r'diversity.*?(\d+(?:\.\d+)?)\s*%',
+                "renewable_energy": r'renewable.*?(\d+(?:\.\d+)?)\s*(?:%|kwh|mwh)'
+            }
+            
+            for metric, pattern in esg_patterns.items():
+                matches = re.findall(pattern, text_content, re.IGNORECASE)
+                if matches:
+                    extracted_data["esg_metrics"][metric] = float(matches[0])
+            
+            # Extract financial data patterns
+            financial_patterns = {
+                "revenue": r'revenue.*?[\$€£]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:million|billion|m|b)?',
+                "net_income": r'net\s+income.*?[\$€£]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:million|billion|m|b)?',
+                "total_assets": r'total\s+assets.*?[\$€£]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:million|billion|m|b)?',
+                "esg_investments": r'(?:esg|sustainability)\s+investment.*?[\$€£]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:million|billion|m|b)?'
+            }
+            
+            for metric, pattern in financial_patterns.items():
+                matches = re.findall(pattern, text_content, re.IGNORECASE)
+                if matches:
+                    extracted_data["financial_data"][metric] = matches[0].replace(',', '')
+            
+            # Extract compliance references
+            compliance_patterns = [
+                r'GRI\s+\d+-\d+',
+                r'IFRS\s+S[12]',
+                r'SASB\s+\w+-\w+',
+                r'TCFD',
+                r'UN\s+SDG\s+\d+',
+                r'IAS\s+\d+'
+            ]
+            
+            for pattern in compliance_patterns:
+                matches = re.findall(pattern, text_content, re.IGNORECASE)
+                extracted_data["compliance_references"].extend(matches)
+            
+        return extracted_data
+    except Exception as e:
+        return {"error": f"Failed to extract PDF data: {str(e)}"}
+
+async def compare_with_current_data(organization_id: str, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Compare extracted report data with current assessment data"""
+    
+    # Get current assessment data
+    current_answers = await db.answers.find({"organization_id": organization_id}).to_list(1000)
+    current_questions = await db.esg_questions.find({}).to_list(1000)
+    
+    comparison_results = {
+        "data_coverage": {},
+        "score_differences": {},
+        "missing_elements": [],
+        "improvement_areas": [],
+        "compliance_gaps": [],
+        "recommendations": []
+    }
+    
+    # Calculate current ESG scores
+    current_scores = calculate_esg_score(current_answers, current_questions)
+    
+    # Estimate scores from uploaded report data
+    uploaded_scores = {"environmental": 0, "social": 0, "governance": 0}
+    
+    # Environmental score estimation based on extracted metrics
+    if extracted_data.get("esg_metrics"):
+        env_metrics = 0
+        if "co2_emissions" in extracted_data["esg_metrics"]:
+            env_metrics += 20
+        if "energy_consumption" in extracted_data["esg_metrics"]:
+            env_metrics += 20
+        if "renewable_energy" in extracted_data["esg_metrics"]:
+            env_metrics += 30
+        if "water_usage" in extracted_data["esg_metrics"]:
+            env_metrics += 15
+        if "waste_generated" in extracted_data["esg_metrics"]:
+            env_metrics += 15
+        uploaded_scores["environmental"] = min(env_metrics, 100)
+    
+    # Social score estimation
+    if extracted_data.get("esg_metrics"):
+        social_metrics = 0
+        if "employee_count" in extracted_data["esg_metrics"]:
+            social_metrics += 25
+        if "diversity_percentage" in extracted_data["esg_metrics"]:
+            social_metrics += 50
+        uploaded_scores["social"] = min(social_metrics, 100)
+    
+    # Governance score estimation based on compliance references
+    if extracted_data.get("compliance_references"):
+        governance_score = len(extracted_data["compliance_references"]) * 15
+        uploaded_scores["governance"] = min(governance_score, 100)
+    
+    # Compare scores
+    for category in ["environmental", "social", "governance"]:
+        current_score = current_scores.get(category, 0)
+        uploaded_score = uploaded_scores.get(category, 0)
+        comparison_results["score_differences"][category] = {
+            "current": current_score,
+            "uploaded": uploaded_score,
+            "difference": uploaded_score - current_score
+        }
+    
+    # Generate recommendations
+    for category, scores in comparison_results["score_differences"].items():
+        if scores["difference"] > 10:
+            comparison_results["recommendations"].append(
+                f"The uploaded report shows stronger {category} performance. Consider implementing similar practices."
+            )
+        elif scores["difference"] < -10:
+            comparison_results["recommendations"].append(
+                f"Current {category} performance exceeds the uploaded report. Continue current practices."
+            )
+    
+    # Check compliance gaps
+    current_compliance = set(extracted_data.get("compliance_references", []))
+    expected_compliance = {"GRI", "IFRS S1", "IFRS S2", "SASB", "TCFD"}
+    missing_compliance = expected_compliance - {ref.split()[0] for ref in current_compliance}
+    
+    if missing_compliance:
+        comparison_results["compliance_gaps"] = list(missing_compliance)
+        comparison_results["recommendations"].append(
+            f"Consider implementing {', '.join(missing_compliance)} standards for comprehensive reporting."
+        )
+    
+    return comparison_results
+
+# Report Upload and Comparison Routes
+@api_router.post("/reports/upload")
+async def upload_report(
+    organization_id: str,
+    file: UploadFile = File(...),
+):
+    """Upload and process ESG report for comparison"""
+    try:
+        # Validate file type
+        allowed_types = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Only PDF and DOCX files are supported")
+        
+        # Create upload directory if it doesn't exist
+        upload_dir = Path("/app/uploads")
+        upload_dir.mkdir(exist_ok=True)
+        
+        # Save file
+        file_path = upload_dir / f"{uuid.uuid4()}_{file.filename}"
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        # Create database record
+        uploaded_report = UploadedReport(
+            organization_id=organization_id,
+            file_name=file.filename,
+            file_path=str(file_path),
+            file_type=file.content_type,
+            processed=False
+        )
+        
+        report_data = prepare_for_mongo(uploaded_report.dict())
+        await db.uploaded_reports.insert_one(report_data)
+        
+        # Process the file asynchronously (for now, we'll do it synchronously)
+        if file.content_type == 'application/pdf':
+            extracted_data = await extract_pdf_data(str(file_path))
+            comparison_results = await compare_with_current_data(organization_id, extracted_data)
+            
+            # Update the record with processed data
+            await db.uploaded_reports.update_one(
+                {"id": uploaded_report.id},
+                {"$set": {
+                    "processed": True,
+                    "extracted_data": extracted_data,
+                    "comparison_results": comparison_results
+                }}
+            )
+            
+            uploaded_report.processed = True
+            uploaded_report.extracted_data = extracted_data
+            uploaded_report.comparison_results = comparison_results
+        
+        return {
+            "id": uploaded_report.id,
+            "message": "Report uploaded and processed successfully",
+            "processed": uploaded_report.processed,
+            "extracted_metrics": len(uploaded_report.extracted_data.get("esg_metrics", {})),
+            "comparison_available": bool(uploaded_report.comparison_results)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload report: {str(e)}")
+
+@api_router.get("/reports/uploaded/{organization_id}")
+async def get_uploaded_reports(organization_id: str):
+    """Get all uploaded reports for an organization"""
+    reports = await db.uploaded_reports.find({"organization_id": organization_id}).to_list(100)
+    return [UploadedReport(**parse_from_mongo(report)) for report in reports]
+
+@api_router.get("/reports/comparison/{report_id}")
+async def get_report_comparison(report_id: str):
+    """Get detailed comparison results for an uploaded report"""
+    report = await db.uploaded_reports.find_one({"id": report_id})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    return {
+        "report_info": {
+            "file_name": report["file_name"],
+            "upload_date": report["upload_date"],
+            "processed": report["processed"]
+        },
+        "extracted_data": report.get("extracted_data", {}),
+        "comparison_results": report.get("comparison_results", {}),
+        "summary": {
+            "total_metrics_extracted": len(report.get("extracted_data", {}).get("esg_metrics", {})),
+            "compliance_references_found": len(report.get("extracted_data", {}).get("compliance_references", [])),
+            "recommendations_count": len(report.get("comparison_results", {}).get("recommendations", []))
+        }
+    }
+
+@api_router.post("/reports/generate-comparison-report/{organization_id}")
+async def generate_comparison_report(organization_id: str):
+    """Generate comprehensive comparison report based on uploaded reports"""
+    
+    # Get all uploaded reports for the organization
+    uploaded_reports = await db.uploaded_reports.find({
+        "organization_id": organization_id,
+        "processed": True
+    }).to_list(100)
+    
+    if not uploaded_reports:
+        raise HTTPException(status_code=404, detail="No processed reports found for comparison")
+    
+    # Get current assessment data
+    current_answers = await db.answers.find({"organization_id": organization_id}).to_list(1000)
+    current_questions = await db.esg_questions.find({}).to_list(1000)
+    current_scores = calculate_esg_score(current_answers, current_questions)
+    
+    # Aggregate comparison data
+    comparison_report = {
+        "organization_id": organization_id,
+        "generation_date": datetime.now(timezone.utc).isoformat(),
+        "reports_analyzed": len(uploaded_reports),
+        "current_scores": current_scores,
+        "uploaded_reports_summary": [],
+        "overall_comparison": {
+            "strengths": [],
+            "improvement_areas": [],
+            "compliance_status": {},
+            "recommendations": []
+        },
+        "gap_analysis": {
+            "environmental": {"gaps": [], "opportunities": []},
+            "social": {"gaps": [], "opportunities": []},
+            "governance": {"gaps": [], "opportunities": []}
+        }
+    }
+    
+    all_recommendations = []
+    compliance_references = set()
+    
+    for report in uploaded_reports:
+        comparison_results = report.get("comparison_results", {})
+        extracted_data = report.get("extracted_data", {})
+        
+        report_summary = {
+            "file_name": report["file_name"],
+            "upload_date": report["upload_date"],
+            "score_differences": comparison_results.get("score_differences", {}),
+            "metrics_found": len(extracted_data.get("esg_metrics", {}))
+        }
+        comparison_report["uploaded_reports_summary"].append(report_summary)
+        
+        # Collect recommendations
+        all_recommendations.extend(comparison_results.get("recommendations", []))
+        
+        # Collect compliance references
+        compliance_references.update(extracted_data.get("compliance_references", []))
+        
+        # Analyze gaps by category
+        for category in ["environmental", "social", "governance"]:
+            score_diff = comparison_results.get("score_differences", {}).get(category, {})
+            if score_diff.get("difference", 0) > 15:
+                comparison_report["gap_analysis"][category]["opportunities"].append(
+                    f"Uploaded report shows {score_diff['difference']:.1f} point higher {category} score"
+                )
+            elif score_diff.get("difference", 0) < -15:
+                comparison_report["gap_analysis"][category]["gaps"].append(
+                    f"Current system shows {abs(score_diff['difference']):.1f} point higher {category} score than uploaded report"
+                )
+    
+    # Deduplicate and prioritize recommendations
+    unique_recommendations = list(set(all_recommendations))
+    comparison_report["overall_comparison"]["recommendations"] = unique_recommendations[:10]  # Top 10
+    
+    # Compliance status
+    comparison_report["overall_comparison"]["compliance_status"] = {
+        "references_found": list(compliance_references),
+        "coverage_count": len(compliance_references)
+    }
+    
+    # Generate overall strengths and improvement areas
+    avg_scores = {}
+    for category in ["environmental", "social", "governance"]:
+        scores = [report.get("comparison_results", {}).get("score_differences", {}).get(category, {}).get("uploaded", 0) 
+                 for report in uploaded_reports]
+        if scores:
+            avg_scores[category] = sum(scores) / len(scores)
+    
+    for category, avg_score in avg_scores.items():
+        current_score = current_scores.get(category, 0)
+        if avg_score > current_score + 10:
+            comparison_report["overall_comparison"]["improvement_areas"].append(
+                f"Enhance {category} performance - uploaded reports average {avg_score:.1f} vs current {current_score:.1f}"
+            )
+        elif current_score > avg_score + 10:
+            comparison_report["overall_comparison"]["strengths"].append(
+                f"Strong {category} performance - current {current_score:.1f} exceeds uploaded reports average {avg_score:.1f}"
+            )
+    
+    return comparison_report
+
 # Include the router in the main app
 app.include_router(api_router)
 
