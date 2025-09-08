@@ -1870,6 +1870,119 @@ function App() {
                 </Card>
               )}
 
+              {/* Report Upload and Comparison Section */}
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Upload className="h-5 w-5 mr-2" />
+                    Report Upload & Comparison
+                  </CardTitle>
+                  <CardDescription>
+                    Upload existing ESG reports for automatic analysis and comparison with current assessment
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Upload Section */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900">Upload ESG Report</h4>
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 mb-2">
+                          Drop your PDF report here or click to browse
+                        </p>
+                        <input
+                          type="file"
+                          id="report-upload"
+                          accept=".pdf,.docx"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file && selectedOrg) {
+                              try {
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                formData.append('organization_id', selectedOrg.id);
+                                
+                                const response = await fetch(`${API}/reports/upload?organization_id=${selectedOrg.id}`, {
+                                  method: 'POST',
+                                  body: formData
+                                });
+                                
+                                if (response.ok) {
+                                  const result = await response.json();
+                                  alert(`Report uploaded successfully! ${result.extracted_metrics} metrics extracted.`);
+                                  // Reload uploaded reports
+                                  loadUploadedReports();
+                                } else {
+                                  alert('Failed to upload report');
+                                }
+                              } catch (error) {
+                                alert('Error uploading report: ' + error.message);
+                              }
+                            }
+                          }}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => document.getElementById('report-upload').click()}
+                        >
+                          Browse Files
+                        </Button>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Supports PDF and DOCX files (max 10MB)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Comparison Results */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900">Automatic Analysis Features</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-blue-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-blue-900">Data Extraction</div>
+                            <div className="text-sm text-blue-700">Automatic extraction of ESG metrics and financial data</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-green-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-green-900">Score Comparison</div>
+                            <div className="text-sm text-green-700">Compare uploaded report scores with current assessment</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-purple-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-purple-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-purple-900">Gap Analysis</div>
+                            <div className="text-sm text-purple-700">Identify improvement opportunities and compliance gaps</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-orange-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-orange-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-orange-900">Recommendations</div>
+                            <div className="text-sm text-orange-700">AI-powered suggestions for improvement</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Uploaded Reports List - Placeholder */}
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <h4 className="font-semibold text-gray-900 mb-4">Recent Uploads</h4>
+                    <div className="text-center py-8 text-gray-500">
+                      <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                      <p>No reports uploaded yet. Upload your first ESG report to get started.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
