@@ -1020,6 +1020,369 @@ function App() {
               <TabsTrigger value="reports">Reports</TabsTrigger>
             </TabsList>
             
+            <TabsContent value="statements" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Financial Statements & IAS/IFRS Analysis</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Comprehensive financial performance analysis with ESG integration and IAS/IFRS compliance
+                </p>
+              </div>
+
+              {financialStatementsData ? (
+                <div className="space-y-8">
+                  {/* Financial Performance Overview */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                            <p className="text-3xl font-bold text-gray-900">
+                              ${(financialStatementsData.income_statement_summary.total_revenue / 1000000).toFixed(1)}M
+                            </p>
+                            <p className="text-xs text-gray-500">{financialStatementsData.currency}</p>
+                          </div>
+                          <div className="text-gray-400">
+                            <TrendingUp className="h-8 w-8" />
+                          </div>
+                        </div>
+                        {financialStatementsData.esg_financial_integration.esg_revenue_impact > 0 && (
+                          <div className="mt-4 flex items-center text-sm text-green-600">
+                            <Leaf className="h-4 w-4 mr-1" />
+                            ${(financialStatementsData.esg_financial_integration.esg_revenue_impact / 1000000).toFixed(1)}M from ESG
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Net Income</p>
+                            <p className="text-3xl font-bold text-gray-900">
+                              ${(financialStatementsData.income_statement_summary.net_income / 1000000).toFixed(1)}M
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {financialStatementsData.income_statement_summary.profit_margin.toFixed(1)}% margin
+                            </p>
+                          </div>
+                          <div className="text-gray-400">
+                            <DollarSign className="h-8 w-8" />
+                          </div>
+                        </div>
+                        {financialStatementsData.esg_financial_integration.esg_net_income_impact !== 0 && (
+                          <div className={`mt-4 flex items-center text-sm ${financialStatementsData.esg_financial_integration.esg_net_income_impact > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <Zap className="h-4 w-4 mr-1" />
+                            ${Math.abs(financialStatementsData.esg_financial_integration.esg_net_income_impact / 1000000).toFixed(1)}M ESG impact
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Total Assets</p>
+                            <p className="text-3xl font-bold text-gray-900">
+                              ${(financialStatementsData.balance_sheet_summary.total_assets / 1000000).toFixed(1)}M
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              ROA: {financialStatementsData.key_ratios.return_on_assets.toFixed(1)}%
+                            </p>
+                          </div>
+                          <div className="text-gray-400">
+                            <Building2 className="h-8 w-8" />
+                          </div>
+                        </div>
+                        {financialStatementsData.esg_financial_integration.esg_asset_impact > 0 && (
+                          <div className="mt-4 flex items-center text-sm text-blue-600">
+                            <Shield className="h-4 w-4 mr-1" />
+                            ${(financialStatementsData.esg_financial_integration.esg_asset_impact / 1000000).toFixed(1)}M ESG assets
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Operating Cash Flow</p>
+                            <p className="text-3xl font-bold text-gray-900">
+                              ${(financialStatementsData.cash_flow_summary.operating_cash_flow / 1000000).toFixed(1)}M
+                            </p>
+                            <p className="text-xs text-gray-500">Strong liquidity</p>
+                          </div>
+                          <div className="text-gray-400">
+                            <Activity className="h-8 w-8" />
+                          </div>
+                        </div>
+                        {financialStatementsData.esg_financial_integration.esg_cash_impact !== 0 && (
+                          <div className={`mt-4 flex items-center text-sm ${financialStatementsData.esg_financial_integration.esg_cash_impact > 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                            <Calculator className="h-4 w-4 mr-1" />
+                            ${Math.abs(financialStatementsData.esg_financial_integration.esg_cash_impact / 1000000).toFixed(1)}M ESG impact
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* ESG Financial Integration Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Zap className="h-5 w-5 mr-2" />
+                        ESG Financial Integration Analysis
+                      </CardTitle>
+                      <CardDescription>
+                        Impact of ESG initiatives on financial performance and return on investment
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-2xl font-bold text-green-600">
+                            ${(financialStatementsData.esg_financial_integration.esg_revenue_impact / 1000000).toFixed(1)}M
+                          </div>
+                          <div className="text-sm text-gray-600">ESG Revenue</div>
+                        </div>
+                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                          <div className="text-2xl font-bold text-red-600">
+                            ${Math.abs(financialStatementsData.esg_financial_integration.esg_expense_impact / 1000000).toFixed(1)}M
+                          </div>
+                          <div className="text-sm text-gray-600">ESG Investment</div>
+                        </div>
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                          <div className="text-2xl font-bold text-blue-600">
+                            {financialStatementsData.esg_financial_integration.esg_roi.toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-600">ESG ROI</div>
+                        </div>
+                        <div className="text-center p-4 bg-purple-50 rounded-lg">
+                          <div className="text-2xl font-bold text-purple-600">
+                            ${(financialStatementsData.esg_financial_integration.esg_net_income_impact / 1000000).toFixed(1)}M
+                          </div>
+                          <div className="text-sm text-gray-600">Net ESG Impact</div>
+                        </div>
+                      </div>
+                      
+                      <ResponsiveContainer width="100%" height={300}>
+                        <RechartsBarChart data={[
+                          { name: 'Revenue Impact', value: financialStatementsData.esg_financial_integration.esg_revenue_impact / 1000000, fill: '#10b981' },
+                          { name: 'Cost Impact', value: Math.abs(financialStatementsData.esg_financial_integration.esg_expense_impact) / 1000000, fill: '#ef4444' },
+                          { name: 'Asset Impact', value: financialStatementsData.esg_financial_integration.esg_asset_impact / 1000000, fill: '#3b82f6' },
+                          { name: 'Cash Impact', value: Math.abs(financialStatementsData.esg_financial_integration.esg_cash_impact) / 1000000, fill: '#8b5cf6' }
+                        ]}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis label={{ value: 'Amount ($ Millions)', angle: -90, position: 'insideLeft' }} />
+                          <Tooltip formatter={(value) => [`$${value.toFixed(1)}M`, 'Impact']} />
+                          <Bar dataKey="value" />
+                        </RechartsBarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* Key Financial Ratios */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Calculator className="h-5 w-5 mr-2" />
+                        Key Financial Ratios & Performance Metrics
+                      </CardTitle>
+                      <CardDescription>
+                        Financial health indicators with ESG influence analysis
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold text-gray-900 mb-2">Current Ratio</h4>
+                          <div className="text-2xl font-bold text-blue-600 mb-1">
+                            {financialStatementsData.key_ratios.current_ratio.toFixed(2)}
+                          </div>
+                          <p className="text-xs text-gray-500">Liquidity measure</p>
+                          <div className="mt-2">
+                            <Progress value={Math.min(financialStatementsData.key_ratios.current_ratio * 50, 100)} className="h-2" />
+                          </div>
+                        </div>
+
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold text-gray-900 mb-2">Debt to Assets</h4>
+                          <div className="text-2xl font-bold text-green-600 mb-1">
+                            {(financialStatementsData.key_ratios.debt_to_assets * 100).toFixed(1)}%
+                          </div>
+                          <p className="text-xs text-gray-500">Leverage ratio</p>
+                          <div className="mt-2">
+                            <Progress value={financialStatementsData.key_ratios.debt_to_assets * 100} className="h-2" />
+                          </div>
+                        </div>
+
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold text-gray-900 mb-2">Return on Assets</h4>
+                          <div className="text-2xl font-bold text-purple-600 mb-1">
+                            {financialStatementsData.key_ratios.return_on_assets.toFixed(1)}%
+                          </div>
+                          <p className="text-xs text-gray-500">Asset efficiency</p>
+                          <div className="mt-2">
+                            <Progress value={Math.min(financialStatementsData.key_ratios.return_on_assets * 5, 100)} className="h-2" />
+                          </div>
+                        </div>
+
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold text-gray-900 mb-2">Return on Equity</h4>
+                          <div className="text-2xl font-bold text-orange-600 mb-1">
+                            {financialStatementsData.key_ratios.return_on_equity.toFixed(1)}%
+                          </div>
+                          <p className="text-xs text-gray-500">Shareholder returns</p>
+                          <div className="mt-2">
+                            <Progress value={Math.min(financialStatementsData.key_ratios.return_on_equity * 4, 100)} className="h-2" />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* IAS/IFRS Compliance */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Shield className="h-5 w-5 mr-2" />
+                        IAS/IFRS Compliance Status
+                      </CardTitle>
+                      <CardDescription>
+                        Financial reporting compliance with International Accounting Standards
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="text-center p-6 bg-blue-50 rounded-lg">
+                          <div className="text-3xl font-bold text-blue-600 mb-2">
+                            {financialStatementsData.ias_ifrs_compliance.compliance_percentage.toFixed(0)}%
+                          </div>
+                          <div className="text-sm text-gray-600">Overall Compliance</div>
+                          <Progress value={financialStatementsData.ias_ifrs_compliance.compliance_percentage} className="mt-3 h-2" />
+                        </div>
+                        
+                        <div className="text-center p-6 bg-green-50 rounded-lg">
+                          <div className="text-3xl font-bold text-green-600 mb-2">
+                            {financialStatementsData.ias_ifrs_compliance.compliant_items}
+                          </div>
+                          <div className="text-sm text-gray-600">Compliant Items</div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Out of {financialStatementsData.ias_ifrs_compliance.total_items} total items
+                          </p>
+                        </div>
+                        
+                        <div className="text-center p-6 bg-yellow-50 rounded-lg">
+                          <div className="text-3xl font-bold text-yellow-600 mb-2">
+                            {financialStatementsData.ias_ifrs_compliance.total_items - financialStatementsData.ias_ifrs_compliance.compliant_items}
+                          </div>
+                          <div className="text-sm text-gray-600">Items Need Review</div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Require IAS/IFRS reference
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-semibold mb-3">Key IAS/IFRS Standards Applied:</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center">
+                            <Badge variant="outline" className="mr-2">IAS 1</Badge>
+                            <span>Presentation of Financial Statements</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Badge variant="outline" className="mr-2">IAS 7</Badge>
+                            <span>Statement of Cash Flows</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Badge variant="outline" className="mr-2">IAS 16</Badge>
+                            <span>Property, Plant and Equipment</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Badge variant="outline" className="mr-2">IAS 37</Badge>
+                            <span>Provisions and Contingencies</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Badge variant="outline" className="mr-2">IFRS 15</Badge>
+                            <span>Revenue from Contracts</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Badge variant="outline" className="mr-2">IFRS S1/S2</Badge>
+                            <span>Sustainability Disclosures</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Balance Sheet vs Income Statement Comparison */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Balance Sheet Summary</CardTitle>
+                        <CardDescription>Financial position as of reporting date</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <RechartsPieChart>
+                            <Pie
+                              data={[
+                                { name: 'Assets', value: financialStatementsData.balance_sheet_summary.total_assets, fill: '#3b82f6' },
+                                { name: 'Liabilities', value: financialStatementsData.balance_sheet_summary.total_liabilities, fill: '#ef4444' },
+                                { name: 'Equity', value: financialStatementsData.balance_sheet_summary.total_equity, fill: '#10b981' }
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                              dataKey="value"
+                              label={({ name, value }) => `${name}: $${(value/1000000).toFixed(1)}M`}
+                            >
+                            </Pie>
+                            <Tooltip formatter={(value) => [`$${(value/1000000).toFixed(1)}M`, 'Amount']} />
+                          </RechartsPieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Cash Flow Analysis</CardTitle>
+                        <CardDescription>Cash flow from different activities</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <RechartsBarChart data={[
+                            { name: 'Operating', amount: financialStatementsData.cash_flow_summary.operating_cash_flow / 1000000, fill: '#10b981' },
+                            { name: 'Investing', amount: financialStatementsData.cash_flow_summary.investing_cash_flow / 1000000, fill: '#ef4444' },
+                            { name: 'Financing', amount: financialStatementsData.cash_flow_summary.financing_cash_flow / 1000000, fill: '#3b82f6' }
+                          ]}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis label={{ value: '$ Millions', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip formatter={(value) => [`$${value.toFixed(1)}M`, 'Cash Flow']} />
+                            <Bar dataKey="amount" />
+                          </RechartsBarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Statements Data Available</h3>
+                  <p className="text-gray-500 mb-4">Initialize comprehensive data to view financial statements analysis.</p>
+                  <Button onClick={() => axios.post(`${API}/initialize-comprehensive-data`).then(() => loadDashboardData(selectedOrg.id))}>
+                    Initialize Financial Data
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+            
             <TabsContent value="materiality" className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Double Materiality Assessment</h2>
