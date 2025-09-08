@@ -1013,6 +1013,369 @@ function App() {
               <TabsTrigger value="reports">Reports & IFRS</TabsTrigger>
             </TabsList>
             
+            <TabsContent value="materiality" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Double Materiality Assessment</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Comprehensive analysis of impact materiality and financial materiality across ESG topics, aligned with IFRS S1 and S2 requirements
+                </p>
+              </div>
+
+              {materialityData ? (
+                <div className="space-y-8">
+                  {/* Materiality Matrix Visualization */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Activity className="h-5 w-5 mr-2" />
+                        Materiality Matrix
+                      </CardTitle>
+                      <CardDescription>
+                        Impact vs Financial Materiality for {materialityData.matrix_data.length} ESG topics
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={400}>
+                        <ScatterChart>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            type="number" 
+                            dataKey="impact_materiality" 
+                            name="Impact Materiality" 
+                            domain={[0, 10]}
+                            label={{ value: 'Impact Materiality →', position: 'insideBottom', offset: -5 }}
+                          />
+                          <YAxis 
+                            type="number" 
+                            dataKey="financial_materiality" 
+                            name="Financial Materiality" 
+                            domain={[0, 10]}
+                            label={{ value: 'Financial Materiality ↑', angle: -90, position: 'insideLeft' }}
+                          />
+                          <Tooltip 
+                            cursor={{ strokeDasharray: '3 3' }}
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-white p-3 border rounded-lg shadow-lg">
+                                    <p className="font-semibold">{data.topic}</p>
+                                    <p className="text-sm">Impact: {data.impact_materiality}/10</p>
+                                    <p className="text-sm">Financial: {data.financial_materiality}/10</p>
+                                    <p className="text-sm">Double: {data.double_materiality.toFixed(1)}/10</p>
+                                    {data.ifrs_s1_relevant && <Badge className="mt-1 mr-1">IFRS S1</Badge>}
+                                    {data.ifrs_s2_relevant && <Badge className="mt-1">IFRS S2</Badge>}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Scatter 
+                            data={materialityData.matrix_data} 
+                            fill="#8884d8"
+                          />
+                          {/* High priority zone */}
+                          <Scatter 
+                            data={materialityData.high_priority_topics} 
+                            fill="#ef4444"
+                          />
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                      <div className="mt-4 flex justify-center space-x-6 text-sm">
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                          <span>Standard Topics</span>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                          <span>High Priority (7.0+)</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* High Priority Topics */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <AlertCircle className="h-5 w-5 mr-2" />
+                        High Priority Topics
+                      </CardTitle>
+                      <CardDescription>Topics with double materiality score ≥ 7.0 requiring immediate attention</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {materialityData.high_priority_topics.map((topic, index) => (
+                          <Card key={index} className="border-l-4 border-l-red-500">
+                            <CardContent className="p-4">
+                              <h4 className="font-semibold text-gray-900 mb-2">{topic.topic}</h4>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span>Impact:</span>
+                                  <span className="font-medium">{topic.impact_materiality}/10</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span>Financial:</span>
+                                  <span className="font-medium">{topic.financial_materiality}/10</span>
+                                </div>
+                                <div className="flex justify-between text-sm font-bold border-t pt-2">
+                                  <span>Double Materiality:</span>
+                                  <span className="text-red-600">{topic.double_materiality.toFixed(1)}/10</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  <Badge className={`text-xs ${
+                                    topic.esg_category === 'environmental' ? 'bg-green-100 text-green-800' :
+                                    topic.esg_category === 'social' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-purple-100 text-purple-800'
+                                  }`}>
+                                    {topic.esg_category.charAt(0).toUpperCase() + topic.esg_category.slice(1)}
+                                  </Badge>
+                                  {topic.ifrs_s1_relevant && <Badge variant="secondary">IFRS S1</Badge>}
+                                  {topic.ifrs_s2_relevant && <Badge variant="secondary">IFRS S2</Badge>}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* IFRS Relevant Topics */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Shield className="h-5 w-5 mr-2" />
+                        IFRS Disclosure Requirements
+                      </CardTitle>
+                      <CardDescription>Topics requiring IFRS S1 or S2 disclosures</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {materialityData.ifrs_relevant_topics.map((topic, index) => (
+                          <div key={index} className="p-4 border rounded-lg bg-blue-50">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-semibold text-gray-900">{topic.topic}</h4>
+                              <div className="flex gap-1">
+                                {topic.ifrs_s1_relevant && (
+                                  <Badge className="bg-blue-600 text-white text-xs">IFRS S1</Badge>
+                                )}
+                                {topic.ifrs_s2_relevant && (
+                                  <Badge className="bg-green-600 text-white text-xs">IFRS S2</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              Double Materiality Score: <span className="font-medium">{topic.double_materiality.toFixed(1)}/10</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Materiality Data Available</h3>
+                  <p className="text-gray-500 mb-4">Initialize comprehensive data to view double materiality assessment.</p>
+                  <Button onClick={() => axios.post(`${API}/initialize-comprehensive-data`).then(() => loadDashboardData(selectedOrg.id))}>
+                    Initialize Sample Data
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="financial" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Financial Impact Analysis</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Quantitative assessment of ESG-related financial impacts, risks, and opportunities with IFRS disclosure requirements
+                </p>
+              </div>
+
+              {financialImpactData ? (
+                <div className="space-y-8">
+                  {/* Financial Impact Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Total Projected Impact</p>
+                            <p className="text-3xl font-bold text-gray-900">
+                              ${Math.abs(financialImpactData.total_projected_impact).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">Net financial effect</p>
+                          </div>
+                          <div className="text-gray-400">
+                            <Calculator className="h-8 w-8" />
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center text-sm">
+                          <span className={`${financialImpactData.total_projected_impact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {financialImpactData.total_projected_impact >= 0 ? '+' : ''}
+                            {((financialImpactData.total_projected_impact / 1000000) * 100).toFixed(1)}%
+                          </span>
+                          <span className="text-gray-500 ml-1">impact on business</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">High Confidence</p>
+                            <p className="text-3xl font-bold text-gray-900">{financialImpactData.high_confidence_impacts.length}</p>
+                            <p className="text-xs text-gray-500">Reliable estimates</p>
+                          </div>
+                          <div className="text-gray-400">
+                            <CheckCircle className="h-8 w-8" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">IFRS Disclosures</p>
+                            <p className="text-3xl font-bold text-gray-900">{financialImpactData.ifrs_disclosures_required.length}</p>
+                            <p className="text-xs text-gray-500">Required by standards</p>
+                          </div>
+                          <div className="text-gray-400">
+                            <Shield className="h-8 w-8" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">Total Impacts</p>
+                            <p className="text-3xl font-bold text-gray-900">{financialImpactData.total_impacts}</p>
+                            <p className="text-xs text-gray-500">Identified impacts</p>
+                          </div>
+                          <div className="text-gray-400">
+                            <BarChart className="h-8 w-8" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Impact by Type */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <PieChart className="h-5 w-5 mr-2" />
+                        Financial Impact by Type
+                      </CardTitle>
+                      <CardDescription>Breakdown of ESG financial impacts by category</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <RechartsBarChart data={Object.entries(financialImpactData.by_type).map(([key, value]) => ({
+                          name: key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                          count: value.count,
+                          value: value.total_value
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip formatter={(value, name) => [
+                            name === 'value' ? `$${value.toLocaleString()}` : value,
+                            name === 'value' ? 'Total Impact' : 'Count'
+                          ]} />
+                          <Legend />
+                          <Bar dataKey="count" fill="#8884d8" name="Count" />
+                          <Bar dataKey="value" fill="#82ca9d" name="Total Impact ($)" />
+                        </RechartsBarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* High Confidence Impacts */}
+                  {financialImpactData.high_confidence_impacts.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          High Confidence Financial Impacts
+                        </CardTitle>
+                        <CardDescription>ESG impacts with high confidence in financial estimates</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {financialImpactData.high_confidence_impacts.map((impact, index) => (
+                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                              <div>
+                                <h4 className="font-semibold text-gray-900">{impact.esg_topic}</h4>
+                                <p className="text-sm text-gray-600">{impact.impact_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-lg font-bold ${impact.impact_value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  ${Math.abs(impact.impact_value).toLocaleString()}
+                                </p>
+                                <Badge variant="outline" className="text-xs">High Confidence</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* IFRS Disclosure Requirements */}
+                  {financialImpactData.ifrs_disclosures_required.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Shield className="h-5 w-5 mr-2" />
+                          IFRS Disclosure Requirements
+                        </CardTitle>
+                        <CardDescription>Financial impacts requiring IFRS disclosures</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {financialImpactData.ifrs_disclosures_required.map((disclosure, index) => (
+                            <div key={index} className="p-4 border rounded-lg bg-red-50 border-red-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900">{disclosure.esg_topic}</h4>
+                                <Badge className="bg-red-600 text-white">IFRS Required</Badge>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <p className="text-sm text-gray-600">
+                                  Standard: {disclosure.ifrs_reference || 'IFRS S1/S2'}
+                                </p>
+                                <p className="text-lg font-bold text-red-600">
+                                  ${Math.abs(disclosure.impact_value).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Calculator className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Impact Data Available</h3>
+                  <p className="text-gray-500 mb-4">Initialize comprehensive data to view financial impact analysis.</p>
+                  <Button onClick={() => axios.post(`${API}/initialize-comprehensive-data`).then(() => loadDashboardData(selectedOrg.id))}>
+                    Initialize Sample Data
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+            
             <TabsContent value="dashboard" className="space-y-6">
               {renderAdvancedDashboard()}
             </TabsContent>
