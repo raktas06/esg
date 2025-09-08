@@ -1004,11 +1004,13 @@ function App() {
           </div>
         ) : (
           <Tabs value={currentView} onValueChange={setCurrentView}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="dashboard">Analytics Dashboard</TabsTrigger>
+              <TabsTrigger value="materiality">Double Materiality</TabsTrigger>
+              <TabsTrigger value="financial">Financial Impact</TabsTrigger>
               <TabsTrigger value="canvas">ESG Canvas</TabsTrigger>
               <TabsTrigger value="assessment">Assessment</TabsTrigger>
-              <TabsTrigger value="reports">Reports & Export</TabsTrigger>
+              <TabsTrigger value="reports">Reports & IFRS</TabsTrigger>
             </TabsList>
             
             <TabsContent value="dashboard" className="space-y-6">
