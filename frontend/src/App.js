@@ -11,7 +11,7 @@ import { Badge } from "./components/ui/badge";
 import { Progress } from "./components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog";
-import { BarChart, Building2, Users, Leaf, Scale, Target, ArrowRight, CheckCircle, AlertCircle, TrendingUp, Download, FileText, PieChart, Activity, Award, Calendar, Globe, DollarSign, Zap, Shield, Calculator } from "lucide-react";
+import { BarChart, Building2, Users, Leaf, Scale, Target, ArrowRight, CheckCircle, AlertCircle, TrendingUp, Download, FileText, PieChart, Activity, Award, Calendar, Globe, DollarSign, Zap, Shield, Calculator, Upload } from "lucide-react";
 import { 
   ResponsiveContainer, 
   BarChart as RechartsBarChart, 
