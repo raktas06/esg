@@ -2828,6 +2828,71 @@ class ReportComparison(BaseModel):
     gap_analysis: Dict[str, Any] = {}
 
 # Helper functions for PDF processing
+async def extract_excel_data(file_path: str) -> Dict[str, Any]:
+    """Extract data from Excel file (ESMS assessments, ESG data)"""
+    try:
+        extracted_data = {
+            "text_content": "",
+            "esg_metrics": {},
+            "esms_assessment": {},
+            "sustainability_indicators": {},
+            "compliance_references": []
+        }
+        
+        # Read Excel file
+        df = pd.read_excel(file_path, sheet_name=None)  # Read all sheets
+        
+        # Process each sheet
+        for sheet_name, sheet_df in df.items():
+            sheet_data = {}
+            
+            # Convert sheet to dictionary and extract relevant data
+            for index, row in sheet_df.iterrows():
+                if not row.empty:
+                    # Look for ESG-related keywords in the data
+                    row_text = ' '.join([str(cell) for cell in row if pd.notna(cell)])
+                    
+                    # Extract ESMS-specific data
+                    if any(keyword in row_text.lower() for keyword in ['environmental', 'social', 'governance', 'risk', 'impact']):
+                        sheet_data[f"row_{index}"] = row_text
+                    
+                    # Extract numerical values that might be ESG metrics
+                    numerical_values = [cell for cell in row if pd.api.types.is_numeric_dtype(type(cell)) and pd.notna(cell)]
+                    if numerical_values:
+                        sheet_data[f"metrics_row_{index}"] = numerical_values
+            
+            extracted_data["esms_assessment"][sheet_name] = sheet_data
+        
+        # Extract specific ESG metrics based on common patterns
+        all_text = str(df).lower()
+        
+        # Look for environmental metrics
+        env_patterns = {
+            "energy_consumption": r'energy.*?(\d+(?:\.\d+)?)',
+            "co2_emissions": r'co2|carbon.*?(\d+(?:\.\d+)?)',
+            "water_usage": r'water.*?(\d+(?:\.\d+)?)',
+            "waste_generation": r'waste.*?(\d+(?:\.\d+)?)'
+        }
+        
+        for metric, pattern in env_patterns.items():
+            matches = re.findall(pattern, all_text)
+            if matches:
+                extracted_data["esg_metrics"][metric] = float(matches[0]) if matches[0].replace('.', '').isdigit() else matches[0]
+        
+        # Extract compliance frameworks mentioned
+        compliance_keywords = ['gri', 'sasb', 'tcfd', 'ifrs', 'esms', 'iso 14001', 'iso 45001']
+        for keyword in compliance_keywords:
+            if keyword in all_text:
+                extracted_data["compliance_references"].append(keyword.upper())
+        
+        # Generate summary
+        extracted_data["text_content"] = f"ESMS Self-Assessment data extracted from {len(df)} sheets with comprehensive environmental and social management information."
+        
+        return extracted_data
+        
+    except Exception as e:
+        return {"error": f"Failed to extract Excel data: {str(e)}"}
+
 async def extract_pdf_data(file_path: str) -> Dict[str, Any]:
     """Extract data from PDF file"""
     try:
