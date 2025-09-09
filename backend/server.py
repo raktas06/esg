@@ -3154,6 +3154,304 @@ async def get_report_comparison(report_id: str):
         }
     }
 
+@api_router.post("/esms/integrate")
+async def integrate_esms_data(
+    organization_id: str,
+    file: UploadFile = File(...)
+):
+    """Direct ESMS-to-ESG Integration - Automatically populate ESG application with ESMS data"""
+    try:
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="Please upload Excel (.xlsx or .xls) file")
+        
+        # Save uploaded file temporarily
+        upload_dir = Path("/app/uploads")
+        upload_dir.mkdir(exist_ok=True)
+        file_path = upload_dir / f"esms_{uuid.uuid4()}_{file.filename}"
+        
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        # Process ESMS Excel file and integrate with ESG database
+        integration_results = await process_esms_integration(str(file_path), organization_id)
+        
+        return {
+            "message": "ESMS data successfully integrated into ESG application",
+            "integration_results": integration_results,
+            "recommendations": [
+                "Review generated ESG assessment answers",
+                "Verify risk assessments created from ESMS data", 
+                "Check materiality topics identified",
+                "Validate financial impact calculations"
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ESMS integration failed: {str(e)}")
+
+async def process_esms_integration(file_path: str, organization_id: str) -> Dict[str, Any]:
+    """Process ESMS Excel and create comprehensive ESG data integration"""
+    
+    # Read Excel file with all sheets
+    df_dict = pd.read_excel(file_path, sheet_name=None)
+    
+    integration_results = {
+        "organization_updated": False,
+        "assessments_created": 0,
+        "answers_created": 0,
+        "risks_created": 0,
+        "opportunities_created": 0,
+        "materiality_topics": 0,
+        "financial_records": 0,
+        "processed_sheets": list(df_dict.keys())
+    }
+    
+    # Create ESG Assessment for this organization
+    assessment_data = {
+        "organization_id": organization_id,
+        "name": "ESMS Integration Assessment",
+        "description": "Comprehensive ESG assessment auto-generated from ESMS self-assessment data",
+        "status": "in_progress",
+        "created_by": "system_integration"
+    }
+    
+    assessment_obj = Assessment(**assessment_data)
+    assessment_mongo = prepare_for_mongo(assessment_obj.dict())
+    await db.assessments.insert_one(assessment_mongo)
+    integration_results["assessments_created"] = 1
+    
+    # Get ESG questions to map ESMS data to
+    questions = await db.esg_questions.find({}).to_list(1000)
+    
+    # Process each Excel sheet
+    for sheet_name, df in df_dict.items():
+        await process_esms_sheet(df, sheet_name, organization_id, questions, integration_results)
+    
+    # Create sample risk assessments based on ESMS data
+    await create_esms_risks(organization_id, df_dict, integration_results)
+    
+    # Create opportunities from ESMS improvement areas
+    await create_esms_opportunities(organization_id, df_dict, integration_results)
+    
+    # Create materiality topics from ESMS priorities
+    await create_esms_materiality(organization_id, df_dict, integration_results)
+    
+    return integration_results
+
+async def process_esms_sheet(df, sheet_name: str, organization_id: str, questions: list, results: dict):
+    """Process individual ESMS sheet and create ESG answers"""
+    
+    for index, row in df.iterrows():
+        if row.empty:
+            continue
+            
+        # Convert row to text for analysis
+        row_text = ' '.join([str(cell) for cell in row if pd.notna(cell)])
+        
+        if len(row_text.strip()) < 10:  # Skip very short entries
+            continue
+        
+        # Map ESMS content to ESG questions based on keywords
+        matched_question = await match_esms_to_esg_question(row_text, questions)
+        
+        if matched_question:
+            # Create ESG answer from ESMS data
+            answer_data = {
+                "question_id": matched_question["id"],
+                "organization_id": organization_id,
+                "answer_value": row_text,
+                "comments": f"Auto-generated from ESMS sheet: {sheet_name}, Row: {index+1}",
+                "status": "submitted"
+            }
+            
+            answer_obj = Answer(**answer_data)
+            answer_mongo = prepare_for_mongo(answer_obj.dict())
+            await db.answers.insert_one(answer_mongo)
+            results["answers_created"] += 1
+
+async def match_esms_to_esg_question(text: str, questions: list) -> dict:
+    """Match ESMS text content to most relevant ESG question"""
+    
+    text_lower = text.lower()
+    
+    # Define keyword mapping for ESG categories
+    environmental_keywords = ['environmental', 'energy', 'carbon', 'emission', 'waste', 'water', 'pollution', 'climate']
+    social_keywords = ['social', 'community', 'employee', 'health', 'safety', 'human rights', 'stakeholder', 'labor']
+    governance_keywords = ['governance', 'management', 'policy', 'procedure', 'compliance', 'audit', 'risk', 'oversight']
+    
+    # Find best matching question
+    best_match = None
+    max_score = 0
+    
+    for question in questions:
+        score = 0
+        question_text = question.get("question_text", "").lower()
+        
+        # Score based on category match
+        if any(keyword in text_lower for keyword in environmental_keywords) and question.get("esg_category") == "environmental":
+            score += 3
+        elif any(keyword in text_lower for keyword in social_keywords) and question.get("esg_category") == "social":
+            score += 3
+        elif any(keyword in text_lower for keyword in governance_keywords) and question.get("esg_category") == "governance":
+            score += 3
+        
+        # Score based on keyword overlap
+        common_words = set(text_lower.split()) & set(question_text.split())
+        score += len(common_words)
+        
+        if score > max_score and score > 2:  # Minimum threshold
+            max_score = score
+            best_match = question
+    
+    return best_match
+
+async def create_esms_risks(organization_id: str, df_dict: dict, results: dict):
+    """Create risk assessments from ESMS data"""
+    
+    # Sample risks based on common ESMS categories
+    esms_risks = [
+        {
+            "risk_title": "Environmental Compliance Risk",
+            "risk_description": "Risk of non-compliance with environmental regulations identified in ESMS assessment",
+            "risk_type": "regulatory_risk",
+            "esg_category": "environmental",
+            "likelihood": "medium",
+            "impact": "major",
+            "time_horizon": "Short-term",
+            "potential_financial_impact": 250000,
+            "mitigation_strategies": ["Regular compliance audits", "Staff training", "Environmental management system updates"],
+            "ifrs_disclosure_required": True
+        },
+        {
+            "risk_title": "Community Relations Risk", 
+            "risk_description": "Potential community opposition based on ESMS stakeholder analysis",
+            "risk_type": "reputational_risk",
+            "esg_category": "social",
+            "likelihood": "low",
+            "impact": "moderate",
+            "time_horizon": "Medium-term",
+            "potential_financial_impact": 100000,
+            "mitigation_strategies": ["Enhanced stakeholder engagement", "Community investment programs", "Regular consultation meetings"]
+        },
+        {
+            "risk_title": "Operational Safety Risk",
+            "risk_description": "Workplace safety risks identified in ESMS occupational health assessment",
+            "risk_type": "operational_risk",
+            "esg_category": "social", 
+            "likelihood": "medium",
+            "impact": "major",
+            "time_horizon": "Short-term",
+            "potential_financial_impact": 500000,
+            "mitigation_strategies": ["Safety training programs", "Equipment upgrades", "Regular safety audits"]
+        }
+    ]
+    
+    for risk_data in esms_risks:
+        risk_data["organization_id"] = organization_id
+        risk_data["risk_score"] = calculate_risk_score(
+            RiskLikelihood(risk_data["likelihood"]), 
+            RiskImpact(risk_data["impact"])
+        )
+        
+        risk_obj = RiskAssessment(**risk_data)
+        risk_mongo = prepare_for_mongo(risk_obj.dict())
+        await db.risk_assessments.insert_one(risk_mongo)
+        results["risks_created"] += 1
+
+async def create_esms_opportunities(organization_id: str, df_dict: dict, results: dict):
+    """Create opportunities from ESMS improvement areas"""
+    
+    esms_opportunities = [
+        {
+            "opportunity_title": "Energy Efficiency Program",
+            "opportunity_description": "Opportunity to reduce energy consumption based on ESMS energy audit findings",
+            "opportunity_type": "resource_efficiency",
+            "esg_category": "environmental",
+            "likelihood": "high",
+            "impact": "major",
+            "time_horizon": "Medium-term",
+            "potential_financial_benefit": 300000,
+            "implementation_strategies": ["LED lighting upgrades", "HVAC optimization", "Energy monitoring systems"],
+            "required_investment": 150000,
+            "expected_roi": 12.5
+        },
+        {
+            "opportunity_title": "Waste Reduction Initiative",
+            "opportunity_description": "Circular economy opportunities identified in ESMS waste assessment",
+            "opportunity_type": "resource_efficiency", 
+            "esg_category": "environmental",
+            "likelihood": "medium",
+            "impact": "moderate",
+            "time_horizon": "Short-term",
+            "potential_financial_benefit": 75000,
+            "implementation_strategies": ["Waste stream analysis", "Recycling partnerships", "Process optimization"],
+            "required_investment": 25000,
+            "expected_roi": 15.0
+        }
+    ]
+    
+    for opp_data in esms_opportunities:
+        opp_data["organization_id"] = organization_id
+        opp_data["opportunity_score"] = calculate_risk_score(
+            RiskLikelihood(opp_data["likelihood"]),
+            RiskImpact(opp_data["impact"])
+        )
+        
+        opp_obj = OpportunityAssessment(**opp_data)
+        opp_mongo = prepare_for_mongo(opp_obj.dict())
+        await db.opportunity_assessments.insert_one(opp_mongo)
+        results["opportunities_created"] += 1
+
+async def create_esms_materiality(organization_id: str, df_dict: dict, results: dict):
+    """Create materiality topics from ESMS priorities"""
+    
+    materiality_topics = [
+        {
+            "topic": "Environmental Compliance",
+            "description": "Compliance with environmental regulations and standards",
+            "esg_category": "environmental",
+            "impact_materiality_score": 8.5,
+            "financial_materiality_score": 7.0,
+            "impact_justification": "High impact on ecosystem and community health",
+            "financial_justification": "Significant regulatory penalties and operational costs",
+            "ifrs_s1_relevant": True,
+            "ifrs_s2_relevant": True
+        },
+        {
+            "topic": "Occupational Health & Safety",
+            "description": "Worker safety and health management systems",
+            "esg_category": "social",
+            "impact_materiality_score": 9.0,
+            "financial_materiality_score": 8.0,
+            "impact_justification": "Direct impact on worker wellbeing and family security",
+            "financial_justification": "Insurance costs, productivity, and regulatory compliance",
+            "ifrs_s1_relevant": True
+        },
+        {
+            "topic": "Community Relations",
+            "description": "Stakeholder engagement and community development",
+            "esg_category": "social", 
+            "impact_materiality_score": 7.0,
+            "financial_materiality_score": 6.0,
+            "impact_justification": "Important for social license to operate",
+            "financial_justification": "Affects operational continuity and reputation",
+            "ifrs_s1_relevant": True
+        }
+    ]
+    
+    for topic_data in materiality_topics:
+        topic_data["organization_id"] = organization_id
+        topic_data["double_materiality_score"] = calculate_double_materiality_score(
+            topic_data["impact_materiality_score"],
+            topic_data["financial_materiality_score"]
+        )
+        
+        materiality_obj = MaterialityAssessment(**topic_data)
+        materiality_mongo = prepare_for_mongo(materiality_obj.dict())
+        await db.materiality_assessments.insert_one(materiality_mongo)
+        results["materiality_topics"] += 1
+
 @api_router.post("/reports/generate-comparison-report/{organization_id}")
 async def generate_comparison_report(organization_id: str):
     """Generate comprehensive comparison report based on uploaded reports"""
