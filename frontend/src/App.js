@@ -2519,6 +2519,88 @@ function App() {
                 </p>
               </div>
 
+              {/* ESMS Integration Panel - Based on User's Actual ESMS Data */}
+              <Card className="mb-6 border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-blue-800">
+                    <Shield className="h-6 w-6 mr-2" />
+                    ESMS Integration (IFC Performance Standard 1)
+                  </CardTitle>
+                  <CardDescription className="text-blue-700">
+                    Environmental and Social Management System analysis based on your ESMS self-assessment (Score: 2.57/5 - Defined Level)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="text-center p-4 bg-white rounded-lg border border-blue-200">
+                      <div className="text-2xl font-bold text-blue-600">2.57/5</div>
+                      <div className="text-sm text-gray-600">Overall ESMS Score</div>
+                      <div className="text-xs text-blue-600">Defined Maturity Level</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-lg border border-green-200">
+                      <div className="text-2xl font-bold text-green-600">9</div>
+                      <div className="text-sm text-gray-600">IFC PS1 Elements</div>
+                      <div className="text-xs text-green-600">Comprehensive Coverage</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-lg border border-orange-200">
+                      <div className="text-2xl font-bold text-orange-600">5</div>
+                      <div className="text-sm text-gray-600">Priority Areas</div>
+                      <div className="text-xs text-orange-600">Need Enhancement</div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold text-green-800 mb-2">🎯 ESMS Strengths (From Your Assessment)</h4>
+                      <ul className="text-sm space-y-1">
+                        <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-600 mr-2" />Strong Environmental & Social Policy (5.0/5)</li>
+                        <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-600 mr-2" />Risk Identification Framework</li>
+                        <li className="flex items-center"><CheckCircle className="h-4 w-4 text-green-600 mr-2" />Management Commitment</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-orange-800 mb-2">📈 Priority Improvements</h4>
+                      <ul className="text-sm space-y-1">
+                        <li className="flex items-center"><AlertCircle className="h-4 w-4 text-orange-600 mr-2" />Management Programs</li>
+                        <li className="flex items-center"><AlertCircle className="h-4 w-4 text-orange-600 mr-2" />Emergency Preparedness</li>
+                        <li className="flex items-center"><AlertCircle className="h-4 w-4 text-orange-600 mr-2" />Grievance Mechanisms</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await axios.get(`${API}/esms/maturity/${selectedOrg.id}`);
+                          alert(`ESMS Maturity Analysis:\n\nOverall Score: ${response.data.overall_score}/5\nMaturity Level: ${response.data.maturity_level}\n\nTop Strengths:\n${response.data.strengths.slice(0,2).map(s => `• ${s}`).join('\n')}\n\nPriority Areas:\n${response.data.improvement_areas.slice(0,2).map(i => `• ${i}`).join('\n')}`);
+                        } catch (error) {
+                          alert('Error loading ESMS analysis');
+                        }
+                      }}
+                    >
+                      View Full ESMS Analysis
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await axios.get(`${API}/esms/improvement-plan/${selectedOrg.id}`);
+                          alert(`ESMS Improvement Plan:\n\nCurrent Level: ${response.data.current_maturity_level}\nTarget Score: ${response.data.target_score}/5\n\nPriority Actions:\n${response.data.improvement_actions.slice(0,3).map(a => `• ${a.improvement_action} (${a.timeline})`).join('\n')}\n\nEstimated Timeline: ${response.data.estimated_timeline}`);
+                        } catch (error) {
+                          alert('Error loading improvement plan');
+                        }
+                      }}
+                    >
+                      Generate Improvement Plan
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {selectedOrg ? (
                 <div className="space-y-6">
                   {/* Risk Assessment Summary */}
