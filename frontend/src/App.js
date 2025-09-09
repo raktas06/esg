@@ -1992,7 +1992,7 @@ function App() {
                           Browse Files
                         </Button>
                         <p className="text-xs text-gray-500 mt-2">
-                          Supports PDF and DOCX files (max 10MB)
+                          Supports PDF, DOCX, XLSX, XLS files (max 10MB)
                         </p>
                       </div>
                     </div>
