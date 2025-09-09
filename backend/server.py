@@ -2803,6 +2803,45 @@ async def initialize_comprehensive_sample_data():
         ]
     }
 
+# ESMS-Specific Models (Based on IFC Performance Standard 1)
+class ESMSAssessment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    esms_element: str  # 1-Policy, 2-Risks, 3-Management, etc.
+    element_name: str  # Policy, Identification of Risks and Impacts, etc.  
+    question_text: str
+    response_score: float  # 0-5 scale
+    response_description: str
+    evidence: Optional[str] = None
+    improvement_priority: str = "medium"  # low, medium, high
+    ifc_ps1_compliance: bool = False
+    created_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ESMSMaturityLevel(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    overall_score: float  # 0-5 scale
+    maturity_level: str  # Basic, Developing, Defined, Managed, Optimizing
+    level_description: str
+    strengths: List[str] = []
+    improvement_areas: List[str] = []
+    priority_actions: List[str] = []
+    ifc_compliance_status: str = "partial"  # none, partial, full
+
+class ESMSImprovementPlan(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    esms_element: str
+    current_score: float
+    target_score: float
+    improvement_action: str
+    responsible_party: str
+    timeline: str  # short-term, medium-term, long-term
+    resources_required: str
+    expected_impact: str
+    ifc_alignment: bool = True
+    implementation_status: str = "planned"  # planned, in_progress, completed
+
 # Report Upload and Comparison Models
 class UploadedReport(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
