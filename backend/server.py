@@ -20,6 +20,8 @@ import docx
 import json
 import re
 from io import BytesIO
+import pandas as pd
+import openpyxl
 
 
 ROOT_DIR = Path(__file__).parent
