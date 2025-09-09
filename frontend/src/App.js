@@ -1898,6 +1898,134 @@ function App() {
                 </Card>
               )}
 
+              {/* ESMS Integration Section */}
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Zap className="h-5 w-5 mr-2" />
+                    ESMS-to-ESG Direct Integration
+                  </CardTitle>
+                  <CardDescription>
+                    Upload your ESMS self-assessment Excel file for automatic integration into your ESG application
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* ESMS Upload Section */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900">Upload ESMS Excel File</h4>
+                      <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${loading ? 'border-blue-300 bg-blue-50' : 'border-green-300 hover:border-green-400 bg-green-50'}`}>
+                        {loading ? (
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        ) : (
+                          <Zap className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                        )}
+                        <p className="text-sm text-gray-600 mb-2">
+                          {loading ? 'Processing your ESMS data and creating ESG integration...' : 'Drop your ESMS Excel file here for complete integration'}
+                        </p>
+                        <input
+                          type="file"
+                          id="esms-integration"
+                          accept=".xlsx,.xls"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file && selectedOrg) {
+                              // Validate file type
+                              if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+                                alert('Please upload an Excel file (.xlsx or .xls)');
+                                return;
+                              }
+                              
+                              try {
+                                setLoading(true);
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                formData.append('organization_id', selectedOrg.id);
+                                
+                                console.log('Starting ESMS integration:', file.name);
+                                
+                                const response = await fetch(`${API}/esms/integrate?organization_id=${selectedOrg.id}`, {
+                                  method: 'POST',
+                                  body: formData
+                                });
+                                
+                                if (response.ok) {
+                                  const result = await response.json();
+                                  alert(`🎉 ESMS INTEGRATION SUCCESSFUL!\n\n✅ Results:\n• ${result.integration_results.assessments_created} ESG assessments created\n• ${result.integration_results.answers_created} assessment answers generated\n• ${result.integration_results.risks_created} risk assessments created\n• ${result.integration_results.opportunities_created} opportunities identified\n• ${result.integration_results.materiality_topics} materiality topics mapped\n\n📊 Your ESMS data is now fully integrated!\n\nNext Steps:\n• Review Analytics dashboard\n• Check Risk & Opportunities tab\n• Verify assessment answers\n• Generate comprehensive reports`);
+                                  
+                                  // Reload all data to show integration results
+                                  await loadAssessments(selectedOrg.id);
+                                  await loadDashboardData(selectedOrg.id);
+                                  await loadUploadedReports();
+                                } else {
+                                  const errorData = await response.json();
+                                  alert(`❌ Integration failed: ${errorData.detail || 'Unknown error'}`);
+                                }
+                              } catch (error) {
+                                console.error('ESMS integration error:', error);
+                                alert(`❌ Error during ESMS integration: ${error.message}`);
+                              } finally {
+                                setLoading(false);
+                                e.target.value = '';
+                              }
+                            } else {
+                              alert('Please select an organization first');
+                            }
+                          }}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => document.getElementById('esms-integration').click()}
+                          disabled={loading}
+                        >
+                          {loading ? 'Processing...' : 'Upload ESMS Excel File'}
+                        </Button>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Supports XLSX and XLS files (max 10MB)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Integration Features */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900">Automatic Integration Features</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center p-3 bg-green-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-green-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-green-900">Complete ESG Assessment</div>
+                            <div className="text-sm text-green-700">Automatically generates ESG answers from ESMS data</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-blue-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-blue-900">Risk & Opportunity Analysis</div>
+                            <div className="text-sm text-blue-700">Creates risk assessments and opportunities from ESMS data</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-purple-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-purple-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-purple-900">Materiality Mapping</div>
+                            <div className="text-sm text-purple-700">Identifies and prioritizes material ESG topics</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center p-3 bg-yellow-50 rounded-lg">
+                          <CheckCircle className="h-5 w-5 text-yellow-600 mr-3" />
+                          <div>
+                            <div className="font-medium text-yellow-900">Dashboard Integration</div>
+                            <div className="text-sm text-yellow-700">Populates analytics with ESMS metrics and insights</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Report Upload and Comparison Section */}
               <Card className="mb-8">
                 <CardHeader>
