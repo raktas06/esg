@@ -1938,9 +1938,14 @@ function App() {
                               }
                               
                               // Validate file type
-                              const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                              const allowedTypes = [
+                                'application/pdf', 
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'application/vnd.ms-excel'
+                              ];
                               if (!allowedTypes.includes(file.type)) {
-                                alert('Only PDF and DOCX files are supported');
+                                alert('Supported formats: PDF, DOCX, XLSX, XLS files');
                                 return;
                               }
                               
