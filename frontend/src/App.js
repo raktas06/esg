@@ -1926,7 +1926,7 @@ function App() {
                         <input
                           type="file"
                           id="report-upload"
-                          accept=".pdf,.docx"
+                          accept=".pdf,.docx,.xlsx,.xls"
                           className="hidden"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
