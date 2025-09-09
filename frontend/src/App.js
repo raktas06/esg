@@ -486,6 +486,84 @@ function App() {
           />
         </div>
 
+        {/* ESMS Integration Dashboard - Based on User's Actual Data */}
+        <Card className="mb-8 border-blue-200">
+          <CardHeader>
+            <CardTitle className="flex items-center text-blue-800">
+              <Shield className="h-5 w-5 mr-2" />
+              ESMS Performance Dashboard (IFC PS1)
+            </CardTitle>
+            <CardDescription>
+              Your Environmental and Social Management System maturity based on actual ESMS assessment
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <div className="text-lg font-bold text-blue-600">5.0</div>
+                <div className="text-xs text-gray-600">Policy</div>
+                <div className="text-xs text-green-600">✅ Strong</div>
+              </div>
+              <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                <div className="text-lg font-bold text-yellow-600">3.0</div>
+                <div className="text-xs text-gray-600">Risks</div>
+                <div className="text-xs text-yellow-600">⚠️ Good</div>
+              </div>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <div className="text-lg font-bold text-red-600">2.0</div>
+                <div className="text-xs text-gray-600">Management</div>
+                <div className="text-xs text-red-600">❌ Needs Work</div>
+              </div>
+              <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                <div className="text-lg font-bold text-yellow-600">2.5</div>
+                <div className="text-xs text-gray-600">Organization</div>
+                <div className="text-xs text-yellow-600">⚠️ Developing</div>
+              </div>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <div className="text-lg font-bold text-red-600">2.0</div>
+                <div className="text-xs text-gray-600">Emergency</div>
+                <div className="text-xs text-red-600">❌ Priority</div>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">ESMS Maturity Progress</span>
+                <span className="text-sm text-gray-600">2.57/5 (Defined Level)</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full" style={{width: '51.4%'}}></div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>Basic</span>
+                <span>Developing</span>
+                <span className="font-semibold">Defined</span>
+                <span>Managed</span>
+                <span>Optimizing</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <h4 className="font-semibold text-green-800 mb-2">Strengths from Your ESMS:</h4>
+                <ul className="space-y-1">
+                  <li>• Comprehensive E&S Policy Framework</li>
+                  <li>• Active Risk Identification Process</li>
+                  <li>• Management Commitment Evident</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-orange-800 mb-2">Next Steps for Improvement:</h4>
+                <ul className="space-y-1">
+                  <li>• Develop Management Programs</li>
+                  <li>• Enhance Emergency Procedures</li>
+                  <li>• Strengthen Monitoring Framework</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* ESG Score Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <ESGScoreCard
