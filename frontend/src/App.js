@@ -2767,7 +2767,7 @@ function App() {
                         <div className="text-center p-4 bg-green-50 rounded-lg">
                           <div className="text-2xl font-bold text-green-600">0</div>
                           <div className="text-sm text-gray-600">High Potential</div>
-                          <div className="text-xs text-gray-500">Score > 70</div>
+                          <div className="text-xs text-gray-500">Score &gt; 70</div>
                         </div>
                         <div className="text-center p-4 bg-blue-50 rounded-lg">
                           <div className="text-2xl font-bold text-blue-600">0</div>
