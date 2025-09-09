@@ -3085,9 +3085,18 @@ async def upload_report(
         report_data = prepare_for_mongo(uploaded_report.dict())
         await db.uploaded_reports.insert_one(report_data)
         
-        # Process the file asynchronously (for now, we'll do it synchronously)
+        # Process the file based on type
         if file.content_type == 'application/pdf':
             extracted_data = await extract_pdf_data(str(file_path))
+        elif file.content_type in ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel']:
+            extracted_data = await extract_excel_data(str(file_path))
+        elif file.content_type == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            # Add DOCX processing if needed
+            extracted_data = {"text_content": "DOCX processing not yet implemented", "esg_metrics": {}}
+        else:
+            extracted_data = {"error": "Unsupported file type"}
+        
+        if "error" not in extracted_data:
             comparison_results = await compare_with_current_data(organization_id, extracted_data)
             
             # Update the record with processed data
@@ -3103,6 +3112,8 @@ async def upload_report(
             uploaded_report.processed = True
             uploaded_report.extracted_data = extracted_data
             uploaded_report.comparison_results = comparison_results
+        else:
+            uploaded_report.extracted_data = extracted_data
         
         return {
             "id": uploaded_report.id,
