@@ -3054,9 +3054,14 @@ async def upload_report(
     """Upload and process ESG report for comparison"""
     try:
         # Validate file type
-        allowed_types = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        allowed_types = [
+            'application/pdf', 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel'
+        ]
         if file.content_type not in allowed_types:
-            raise HTTPException(status_code=400, detail="Only PDF and DOCX files are supported")
+            raise HTTPException(status_code=400, detail="Supported formats: PDF, DOCX, XLSX, XLS files")
         
         # Create upload directory if it doesn't exist
         upload_dir = Path("/app/uploads")
