@@ -118,12 +118,12 @@ class ESRSAPITester:
         
         if success and response:
             print(f"   ✅ Questions loaded: {response.get('questions_loaded', 0)}")
-            print(f"   ✅ Answer options loaded: {response.get('answer_options_loaded', 0)}")
-            print(f"   ✅ Total data points: {response.get('total_data_points', 0)}")
+            print(f"   ✅ Answer options loaded: {response.get('answers_loaded', 0)}")
+            print(f"   ✅ Total data points: {response.get('total_unique_questions', 0)}")
             
             # Validate expected numbers
             questions_loaded = response.get('questions_loaded', 0)
-            answer_options = response.get('answer_options_loaded', 0)
+            answer_options = response.get('answers_loaded', 0)
             
             if questions_loaded >= 140:  # Should be around 146
                 print(f"   ✅ Question count validation passed: {questions_loaded} questions")
