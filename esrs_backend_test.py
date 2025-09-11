@@ -201,7 +201,8 @@ class ESRSAPITester:
                 print(f"   ✅ Sample question has {len(answer_options)} answer options")
                 
                 if len(answer_options) > 0:
-                    print(f"   ✅ Sample answer option: {answer_options[0].get('option_text', 'N/A')[:30]}...")
+                    option_text = answer_options[0].get('option_text', 'N/A') or 'N/A'
+                    print(f"   ✅ Sample answer option: {option_text[:30]}...")
         
         return success, response
 
