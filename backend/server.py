@@ -3687,7 +3687,8 @@ async def get_esrs_questions(organization_id: str, limit: int = 10, offset: int 
                         "id": answer.get("id", answer.get("_id")),
                         "option_text": answer.get("answer_text"),
                         "maturity_level": answer.get("maturity_level"),
-                        "maturity_level_score": answer.get("maturity_level_score", 1)
+                        "maturity_level_score": answer.get("maturity_level_score", 1),
+                        "action_plan": answer.get("action_plan", "")
                     }
                     for answer in answers
                 ]
@@ -3705,7 +3706,8 @@ async def get_esrs_questions(organization_id: str, limit: int = 10, offset: int 
             "total_questions": await db.esrs_questions.count_documents({}),
             "current_offset": offset,
             "has_more": len(questions) == limit,
-            "assessment_status": current_assessment["status"] if current_assessment else "not_started"
+            "assessment_status": current_assessment["status"] if current_assessment else "not_started",
+            "data_source": "esrs_updated.xlsx"
         }
         
     except Exception as e:
