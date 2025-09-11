@@ -102,9 +102,84 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Focus on PENDING features with PDF automatic reports - Complete Risks & Opportunities Analysis, SWOT-based Scenario Analysis frontend implementation, and implement report upload, parsing, and comparative analysis with automatic PDF data extraction"
+user_problem_statement: "ESRS Ön-Değerlendirme sisteminin backend API'lerini test et ve sorunları tespit et - ESRS Questions Loading, Assessment Start, Questions Retrieval, Database Collections kontrolü"
 
 backend:
+  - task: "ESRS Questions Loading API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED: ESRS Questions Loading fully functional - /esrs/load-questions endpoint successfully loads 146 ESRS questions and 730 answer options from Excel file (/app/pre_esg_assessment.xlsx). Excel file reading works correctly, data is properly parsed and stored in MongoDB collections (esrs_questions, esrs_answers)."
+
+  - task: "ESRS Assessment Start API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED: ESRS Assessment Start fully functional - /esrs/start-assessment endpoint successfully creates new assessments for organizations. Returns assessment_id, total_questions (146), and proper status. Assessment creation works correctly and integrates with MongoDB esrs_assessments collection."
+
+  - task: "ESRS Questions Retrieval API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ INITIAL TEST: ESRS Questions Retrieval failed with 500 error due to ObjectId serialization issue in MongoDB documents."
+        - working: true
+          agent: "testing"
+          comment: "✅ FIXED & TESTED: ESRS Questions Retrieval now fully functional - /esrs/questions/{org_id} endpoint successfully returns paginated questions with answer options. Fixed ObjectId serialization issue by converting MongoDB ObjectIds to strings. Returns proper question structure with 5 answer options per question, maturity levels, and pagination support."
+
+  - task: "ESRS Database Collections"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED: ESRS Database Collections fully functional - esrs_questions collection contains 146 questions, esrs_answers collection contains 730 answer options, esrs_assessments collection properly stores assessment data. All collections accessible and working correctly with proper data structure."
+
+  - task: "ESRS Assessment Results API"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: true
+          agent: "testing"
+          comment: "✅ TESTED: ESRS Assessment Results fully functional - /esrs/assessment-results/{org_id} endpoint returns comprehensive assessment data including overall_score, maturity_level, answered_questions, total_questions, completion_percentage, category_scores, recommendations, and next_steps. Proper Turkish language support for recommendations."
+
+  - task: "ESRS Answer Submission API"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: false
+          agent: "testing"
+          comment: "❌ TESTED: ESRS Answer Submission has validation issues - /esrs/submit-answer endpoint returns 422 error due to missing required fields (dp_id, selected_answer_id, selected_score, selected_level). The ESRSResponse model requires additional fields beyond what the frontend is sending. This is a schema mismatch issue that needs alignment between frontend and backend."
+
   - task: "Risk Assessment API Endpoints"
     implemented: true
     working: true
