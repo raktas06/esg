@@ -1865,7 +1865,284 @@ function App() {
             <TabsContent value="dashboard" className="space-y-6">
               {renderAdvancedDashboard()}
             </TabsContent>
-            
+
+            <TabsContent value="esrs" className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">ESRS Ön-Değerlendirmesi</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Avrupa Sürdürülebilirlik Raporlama Standartları'na göre şirketinizin mevcut durumunu değerlendirin
+                </p>
+              </div>
+
+              {/* ESRS Pre-Assessment Section - Full Tab */}
+              <Card className="mb-8 border-green-200 bg-gradient-to-br from-green-50 to-blue-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-green-800">
+                    <CheckCircle className="h-6 w-6 mr-2" />
+                    ESRS Ön-Değerlendirmesi (European Sustainability Reporting Standards)
+                  </CardTitle>
+                  <CardDescription className="text-green-700">
+                    ESG raporlaması öncesi şirketinizin mevcut durumunu belirleyin. Her soru için 5 seçenek arasından en uygununu seçin ve otomatik puanlama alın.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="text-center p-4 bg-white rounded-lg border border-green-200 shadow-sm">
+                      <div className="text-3xl font-bold text-green-600">146</div>
+                      <div className="text-sm text-gray-600">ESRS Sorusu</div>
+                      <div className="text-xs text-green-600">Kapsamlı Değerlendirme</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
+                      <div className="text-3xl font-bold text-blue-600">5</div>
+                      <div className="text-sm text-gray-600">Olgunluk Seviyesi</div>
+                      <div className="text-xs text-blue-600">Detaylı Puanlama</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-lg border border-purple-200 shadow-sm">
+                      <div className="text-3xl font-bold text-purple-600">Auto</div>
+                      <div className="text-sm text-gray-600">Otomatik Analiz</div>
+                      <div className="text-xs text-purple-600">Anında Sonuç</div>
+                    </div>
+                    <div className="text-center p-4 bg-white rounded-lg border border-orange-200 shadow-sm">
+                      <div className="text-3xl font-bold text-orange-600">%100</div>
+                      <div className="text-sm text-gray-600">ESRS Uyumlu</div>
+                      <div className="text-xs text-orange-600">AB Standardı</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                      <h4 className="font-semibold text-green-800 mb-4 flex items-center">
+                        <Target className="h-5 w-5 mr-2" />
+                        🎯 ESRS Değerlendirme Alanları
+                      </h4>
+                      <ul className="text-sm space-y-3">
+                        <li className="flex items-center p-2 bg-green-50 rounded-lg"><CheckCircle className="h-4 w-4 text-green-600 mr-3" />Hazırlık Esasları ve Kapsam (ESRS 2)</li>
+                        <li className="flex items-center p-2 bg-green-50 rounded-lg"><CheckCircle className="h-4 w-4 text-green-600 mr-3" />Çevre Performansı (ESRS E1-E5)</li>
+                        <li className="flex items-center p-2 bg-green-50 rounded-lg"><CheckCircle className="h-4 w-4 text-green-600 mr-3" />Sosyal Performans (ESRS S1-S4)</li>
+                        <li className="flex items-center p-2 bg-green-50 rounded-lg"><CheckCircle className="h-4 w-4 text-green-600 mr-3" />Yönetişim (ESRS G1-G2)</li>
+                        <li className="flex items-center p-2 bg-green-50 rounded-lg"><CheckCircle className="h-4 w-4 text-green-600 mr-3" />Finansal Etkiler ve Riskler</li>
+                        <li className="flex items-center p-2 bg-green-50 rounded-lg"><CheckCircle className="h-4 w-4 text-green-600 mr-3" />Double Materiality Assessment</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-blue-800 mb-4 flex items-center">
+                        <BarChart className="h-5 w-5 mr-2" />
+                        📊 5 Seviyeli Olgunluk Modeli
+                      </h4>
+                      <ul className="text-sm space-y-3">
+                        <li className="flex items-center p-2 bg-red-50 rounded-lg">
+                          <span className="inline-block w-8 h-4 bg-red-500 rounded mr-3"></span>
+                          <div>
+                            <span className="font-medium">1. Uygulanmamış</span>
+                            <div className="text-xs text-gray-600">Hiçbir işlem yok</div>
+                          </div>
+                        </li>
+                        <li className="flex items-center p-2 bg-orange-50 rounded-lg">
+                          <span className="inline-block w-8 h-4 bg-orange-500 rounded mr-3"></span>
+                          <div>
+                            <span className="font-medium">2. Zayıf</span>
+                            <div className="text-xs text-gray-600">Başlangıç seviyesi</div>
+                          </div>
+                        </li>
+                        <li className="flex items-center p-2 bg-yellow-50 rounded-lg">
+                          <span className="inline-block w-8 h-4 bg-yellow-500 rounded mr-3"></span>
+                          <div>
+                            <span className="font-medium">3. Gelişen</span>
+                            <div className="text-xs text-gray-600">Kısmen uygulanan</div>
+                          </div>
+                        </li>
+                        <li className="flex items-center p-2 bg-blue-50 rounded-lg">
+                          <span className="inline-block w-8 h-4 bg-blue-500 rounded mr-3"></span>
+                          <div>
+                            <span className="font-medium">4. Güçlü</span>
+                            <div className="text-xs text-gray-600">İyi uygulanan</div>
+                          </div>
+                        </li>
+                        <li className="flex items-center p-2 bg-green-50 rounded-lg">
+                          <span className="inline-block w-8 h-4 bg-green-500 rounded mr-3"></span>
+                          <div>
+                            <span className="font-medium">5. Rol Model</span>
+                            <div className="text-xs text-gray-600">Mükemmel uygulama</div>
+                          </div>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+                    <h4 className="font-semibold text-gray-800 mb-4 flex items-center">
+                      <Activity className="h-5 w-5 mr-2" />
+                      📈 Değerlendirme Süreci
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="text-center p-4 border-2 border-dashed border-blue-200 rounded-lg">
+                        <div className="text-2xl mb-2">1️⃣</div>
+                        <div className="font-medium text-blue-800">Başlangıç</div>
+                        <div className="text-xs text-gray-600">Değerlendirmeyi başlatın</div>
+                      </div>
+                      <div className="text-center p-4 border-2 border-dashed border-green-200 rounded-lg">
+                        <div className="text-2xl mb-2">2️⃣</div>
+                        <div className="font-medium text-green-800">Cevaplama</div>
+                        <div className="text-xs text-gray-600">146 soruyu cevaplayın</div>
+                      </div>
+                      <div className="text-center p-4 border-2 border-dashed border-purple-200 rounded-lg">
+                        <div className="text-2xl mb-2">3️⃣</div>
+                        <div className="font-medium text-purple-800">Puanlama</div>
+                        <div className="text-xs text-gray-600">Otomatik skorlama</div>
+                      </div>
+                      <div className="text-center p-4 border-2 border-dashed border-orange-200 rounded-lg">
+                        <div className="text-2xl mb-2">4️⃣</div>
+                        <div className="font-medium text-orange-800">Sonuç</div>
+                        <div className="text-xs text-gray-600">Detaylı rapor alın</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-4 justify-center">
+                    <Button 
+                      size="lg"
+                      onClick={async () => {
+                        if (!selectedOrg) {
+                          alert('⚠️ Lütfen önce bir organizasyon seçin');
+                          return;
+                        }
+                        
+                        try {
+                          setLoading(true);
+                          
+                          // Load ESRS questions first
+                          console.log('ESRS soruları yükleniyor...');
+                          await axios.post(`${API}/esrs/load-questions`);
+                          
+                          // Start new assessment
+                          const response = await axios.post(`${API}/esrs/start-assessment?organization_id=${selectedOrg.id}`);
+                          
+                          alert(`🎉 ESRS Ön-Değerlendirmesi Başlatıldı!\n\n📊 Toplam Soru: ${response.data.total_questions}\n🆔 Değerlendirme ID: ${response.data.assessment_id}\n\n✅ Şimdi soruları cevaplamaya başlayabilirsiniz.\n\n💡 İpucu: Her soru için 5 seçenek arasından şirketinizin mevcut durumuna en uygun olanını seçin.`);
+                          
+                          // Refresh to show updated status
+                          window.location.reload();
+                          
+                        } catch (error) {
+                          console.error('ESRS assessment error:', error);
+                          alert('❌ ESRS değerlendirmesi başlatılamadı:\n\n' + (error.response?.data?.detail || error.message) + '\n\nLütfen tekrar deneyin.');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Başlatılıyor...
+                        </div>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          ESRS Ön-Değerlendirmesini Başlat
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      size="lg"
+                      onClick={async () => {
+                        if (!selectedOrg) {
+                          alert('⚠️ Lütfen önce bir organizasyon seçin');
+                          return;
+                        }
+                        
+                        try {
+                          const response = await axios.get(`${API}/esrs/assessment-results/${selectedOrg.id}`);
+                          
+                          const results = `📊 ESRS Değerlendirme Sonuçları\n` +
+                                        `============================\n\n` +
+                                        `🎯 Genel Skor: ${response.data.overall_score}%\n` +
+                                        `📈 Olgunluk Seviyesi: ${response.data.maturity_level}\n` +
+                                        `✅ Cevaplanan Sorular: ${response.data.answered_questions}/${response.data.total_questions}\n` +
+                                        `📊 Tamamlanma: %${response.data.completion_percentage}\n\n` +
+                                        `🎯 Ana Öneriler:\n` +
+                                        `${response.data.recommendations.slice(0,4).map((r, i) => `${i+1}. ${r}`).join('\n')}\n\n` +
+                                        `📅 Değerlendirme Tarihi: ${new Date(response.data.assessment_date).toLocaleDateString('tr-TR')}`;
+                          
+                          alert(results);
+                          
+                        } catch (error) {
+                          alert('ℹ️ Henüz tamamlanmış bir değerlendirme bulunamadı.\n\nÖnce "ESRS Ön-Değerlendirmesini Başlat" butonuna tıklayarak değerlendirmeyi başlatın ve soruları cevaplayın.');
+                        }
+                      }}
+                    >
+                      <BarChart className="h-5 w-5 mr-2" />
+                      Sonuçları Görüntüle
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      size="lg"
+                      onClick={async () => {
+                        if (!selectedOrg) {
+                          alert('⚠️ Lütfen önce bir organizasyon seçin');
+                          return;
+                        }
+                        
+                        try {
+                          const response = await axios.get(`${API}/esrs/questions/${selectedOrg.id}?limit=3`);
+                          
+                          let questionText = `📋 ESRS Örnek Sorular\n=====================\n\n`;
+                          response.data.questions.slice(0,3).forEach((q, i) => {
+                            questionText += `${i+1}. ${q.question_text.substring(0,100)}...\n`;
+                            questionText += `   📊 ${q.answer_options.length} cevap seçeneği (1-5 puan)\n`;
+                            questionText += `   🏷️ Kategori: ${q.category || 'Genel'}\n`;
+                            questionText += `   📄 Standart: ${q.esrs_standard}\n\n`;
+                          });
+                          
+                          questionText += `💡 Toplam ${response.data.total_questions} soru mevcut.\n\n`;
+                          questionText += `🎯 Her soru için 5 seçenek:\n`;
+                          questionText += `1️⃣ Uygulanmamış (1 puan)\n`;
+                          questionText += `2️⃣ Zayıf (2 puan)\n`;
+                          questionText += `3️⃣ Gelişen (3 puan)\n`;
+                          questionText += `4️⃣ Güçlü (4 puan)\n`;
+                          questionText += `5️⃣ Rol Model (5 puan)`;
+                          
+                          alert(questionText);
+                          
+                        } catch (error) {
+                          alert('❌ Örnek sorular yüklenemedi. Lütfen önce "ESRS Ön-Değerlendirmesini Başlat" butonuna tıklayın.');
+                        }
+                      }}
+                    >
+                      <FileText className="h-5 w-5 mr-2" />
+                      Örnek Soruları Gör
+                    </Button>
+
+                    <Button 
+                      variant="outline"
+                      size="lg"
+                      onClick={() => {
+                        const info = `ℹ️ ESRS Hakkında Bilgi\n==================\n\n` +
+                                   `🇪🇺 ESRS (European Sustainability Reporting Standards), Avrupa Birliği'nin sürdürülebilirlik raporlaması için geliştirdiği standartlardır.\n\n` +
+                                   `📊 Bu değerlendirme, şirketinizin ESRS'ye ne kadar hazır olduğunu ölçer.\n\n` +
+                                   `🎯 Kapsadığı Alanlar:\n` +
+                                   `• ESRS 2: Genel Açıklamalar\n` +
+                                   `• ESRS E1-E5: Çevresel Konular\n` +
+                                   `• ESRS S1-S4: Sosyal Konular\n` +
+                                   `• ESRS G1-G2: Yönetişim\n\n` +
+                                   `⏱️ Süre: Yaklaşık 2-3 saat\n` +
+                                   `🎯 Sonuç: Detaylı olgunluk raporu\n` +
+                                   `📈 Fayda: ESRS'ye hazırlık roadmap'i`;
+                        
+                        alert(info);
+                      }}
+                    >
+                      <Globe className="h-5 w-5 mr-2" />
+                      ESRS Hakkında
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
             <TabsContent value="canvas" className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">ESG Business Model Canvas</h2>
