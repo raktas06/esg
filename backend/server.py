@@ -3659,15 +3659,36 @@ async def get_esrs_questions(organization_id: str, limit: int = 10, offset: int 
         # Get answer options for each question
         questions_with_answers = []
         for question in questions:
+            # Convert ObjectId to string for JSON serialization
+            if '_id' in question:
+                question['_id'] = str(question['_id'])
+            
             # Get all answer options for this question
             answers = await db.esrs_answers.find({"dp_id": question["dp_id"]}).to_list(10)
+            
+            # Convert ObjectIds in answers
+            for answer in answers:
+                if '_id' in answer:
+                    answer['_id'] = str(answer['_id'])
             
             # Sort answers by maturity level score
             answers = sorted(answers, key=lambda x: x.get("maturity_level_score", 1))
             
             question_data = {
-                "question": question,
-                "answer_options": answers
+                "id": question.get("id", question.get("_id")),
+                "dp_id": question.get("dp_id"),
+                "question_text": question.get("question_text"),
+                "esrs_standard": question.get("esrs_standard"),
+                "category": question.get("category"),
+                "answer_options": [
+                    {
+                        "id": answer.get("id", answer.get("_id")),
+                        "option_text": answer.get("option_text"),
+                        "maturity_level": answer.get("maturity_level"),
+                        "maturity_level_score": answer.get("maturity_level_score", 1)
+                    }
+                    for answer in answers
+                ]
             }
             questions_with_answers.append(question_data)
         
