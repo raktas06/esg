@@ -3536,6 +3536,342 @@ async def create_esms_materiality(organization_id: str, df_dict: dict, results: 
         await db.materiality_assessments.insert_one(materiality_mongo)
         results["materiality_topics"] += 1
 
+# ESRS Pre-Assessment Endpoints
+@api_router.post("/esrs/load-questions")
+async def load_esrs_questions_from_excel():
+    """Load ESRS questions from Excel file into database"""
+    try:
+        # Read the uploaded Excel file
+        df_questions = pd.read_excel('/app/pre_esg_assessment.xlsx', sheet_name='ESRS_2_P1')
+        df_answers = pd.read_excel('/app/pre_esg_assessment.xlsx', sheet_name='answer_textblock_actionplan')
+        
+        # Clear existing ESRS data
+        await db.esrs_questions.delete_many({})
+        await db.esrs_answers.delete_many({})
+        
+        questions_loaded = 0
+        answers_loaded = 0
+        
+        # Load questions
+        for _, row in df_questions.iterrows():
+            if pd.notna(row.get('DP Question')):
+                question_data = {
+                    "dp_id": str(row.get('dp_ID', '')),
+                    "dp_id_efrag": str(row.get('dp_ID_efrag', '')),
+                    "esrs_standard": str(row.get('ESRS', 'ESRS 2')),
+                    "question_text": str(row.get('DP Question', '')),
+                    "question_explanation": str(row.get('DP Explanation', '') or ''),
+                    "question_example": str(row.get('DP Example', '') or ''),
+                    "evidence_required": str(row.get('DP Evidence', '') or ''),
+                    "category": determine_esrs_category(str(row.get('ESRS', '')))
+                }
+                
+                question_obj = ESRSQuestion(**question_data)
+                question_mongo = prepare_for_mongo(question_obj.dict())
+                await db.esrs_questions.insert_one(question_mongo)
+                questions_loaded += 1
+        
+        # Load answer options
+        for _, row in df_answers.iterrows():
+            if pd.notna(row.get('client_answers')):
+                answer_data = {
+                    "dp_id": str(row.get('dp_ID', '')),
+                    "maturity_level_score": int(row.get('maturity_level_score', 1)),
+                    "maturity_level": str(row.get('maturity_level', '')),
+                    "answer_text": str(row.get('client_answers', '')),
+                    "reporting_statement": str(row.get('reporting_statement_textblock', '') or ''),
+                    "action_plan": str(row.get('gap_actionplan', '') or '')
+                }
+                
+                answer_obj = ESRSAnswer(**answer_data)
+                answer_mongo = prepare_for_mongo(answer_obj.dict())
+                await db.esrs_answers.insert_one(answer_mongo)
+                answers_loaded += 1
+        
+        return {
+            "message": "ESRS questions and answers loaded successfully",
+            "questions_loaded": questions_loaded,
+            "answers_loaded": answers_loaded,
+            "total_unique_questions": len(df_questions[df_questions['DP Question'].notna()]),
+            "maturity_levels": ["Not Implemented", "Weak", "Emerging", "Strong", "Role Model"]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load ESRS data: {str(e)}")
+
+def determine_esrs_category(esrs_standard: str) -> str:
+    """Determine category based on ESRS standard"""
+    if 'E' in esrs_standard:
+        return 'environmental'
+    elif 'S' in esrs_standard:
+        return 'social'
+    elif 'G' in esrs_standard:
+        return 'governance'
+    else:
+        return 'general'
+
+@api_router.post("/esrs/start-assessment")
+async def start_esrs_assessment(organization_id: str):
+    """Start a new ESRS pre-assessment for an organization"""
+    try:
+        # Get all ESRS questions
+        questions = await db.esrs_questions.find({}).to_list(1000)
+        
+        if not questions:
+            # Load questions first
+            await load_esrs_questions_from_excel()
+            questions = await db.esrs_questions.find({}).to_list(1000)
+        
+        # Create new assessment
+        assessment_data = {
+            "organization_id": organization_id,
+            "assessment_name": "ESRS Sürdürülebilirlik Ön-Değerlendirmesi",
+            "total_questions": len(questions),
+            "answered_questions": 0,
+            "overall_score": 0.0,
+            "maturity_level": "Başlanmadı",
+            "category_scores": {},
+            "recommendations": [],
+            "status": "in_progress"
+        }
+        
+        assessment_obj = ESRSAssessment(**assessment_data)
+        assessment_mongo = prepare_for_mongo(assessment_obj.dict())
+        await db.esrs_assessments.insert_one(assessment_mongo)
+        
+        return {
+            "assessment_id": assessment_obj.id,
+            "total_questions": len(questions),
+            "message": "ESRS ön-değerlendirmesi başlatıldı",
+            "next_step": "Soruları cevaplamaya başlayabilirsiniz"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Assessment başlatılamadı: {str(e)}")
+
+@api_router.get("/esrs/questions/{organization_id}")
+async def get_esrs_questions(organization_id: str, limit: int = 10, offset: int = 0):
+    """Get ESRS questions for assessment with answer options"""
+    try:
+        # Get questions with pagination
+        questions = await db.esrs_questions.find({}).skip(offset).limit(limit).to_list(limit)
+        
+        # Get answer options for each question
+        questions_with_answers = []
+        for question in questions:
+            # Get all answer options for this question
+            answers = await db.esrs_answers.find({"dp_id": question["dp_id"]}).to_list(10)
+            
+            # Sort answers by maturity level score
+            answers = sorted(answers, key=lambda x: x.get("maturity_level_score", 1))
+            
+            question_data = {
+                "question": question,
+                "answer_options": answers
+            }
+            questions_with_answers.append(question_data)
+        
+        # Get current assessment status
+        current_assessment = await db.esrs_assessments.find_one({
+            "organization_id": organization_id,
+            "status": {"$in": ["in_progress", "not_started"]}
+        })
+        
+        return {
+            "questions": questions_with_answers,
+            "total_questions": await db.esrs_questions.count_documents({}),
+            "current_offset": offset,
+            "has_more": len(questions) == limit,
+            "assessment_status": current_assessment["status"] if current_assessment else "not_started"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sorular yüklenemedi: {str(e)}")
+
+@api_router.post("/esrs/submit-answer")
+async def submit_esrs_answer(response: ESRSResponse):
+    """Submit answer to ESRS question and update assessment scores"""
+    try:
+        # Save the response
+        response_mongo = prepare_for_mongo(response.dict())
+        await db.esrs_responses.insert_one(response_mongo)
+        
+        # Update assessment progress
+        assessment = await db.esrs_assessments.find_one({"id": response.assessment_id})
+        if not assessment:
+            raise HTTPException(status_code=404, detail="Assessment bulunamadı")
+        
+        # Calculate new scores
+        all_responses = await db.esrs_responses.find({"assessment_id": response.assessment_id}).to_list(1000)
+        
+        total_score = sum([r.get("selected_score", 0) for r in all_responses])
+        answered_count = len(all_responses)
+        overall_score = (total_score / (answered_count * 5)) * 100 if answered_count > 0 else 0  # Percentage
+        
+        # Determine maturity level
+        if overall_score >= 80:
+            maturity_level = "Rol Model"
+        elif overall_score >= 65:
+            maturity_level = "Güçlü"
+        elif overall_score >= 50:
+            maturity_level = "Gelişen"
+        elif overall_score >= 35:
+            maturity_level = "Zayıf"
+        else:
+            maturity_level = "Uygulanmamış"
+        
+        # Update assessment
+        await db.esrs_assessments.update_one(
+            {"id": response.assessment_id},
+            {"$set": {
+                "answered_questions": answered_count,
+                "overall_score": round(overall_score, 2),
+                "maturity_level": maturity_level,
+                "status": "completed" if answered_count >= assessment.get("total_questions", 0) else "in_progress"
+            }}
+        )
+        
+        return {
+            "message": "Cevap kaydedildi",
+            "current_score": round(overall_score, 2),
+            "maturity_level": maturity_level,
+            "answered_questions": answered_count,
+            "completion_percentage": round((answered_count / assessment.get("total_questions", 1)) * 100, 1)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cevap kaydedilemedi: {str(e)}")
+
+@api_router.get("/esrs/assessment-results/{organization_id}")
+async def get_esrs_assessment_results(organization_id: str):
+    """Get comprehensive ESRS assessment results and recommendations"""
+    try:
+        # Get latest assessment
+        assessment = await db.esrs_assessments.find_one(
+            {"organization_id": organization_id},
+            sort=[("assessment_date", -1)]
+        )
+        
+        if not assessment:
+            raise HTTPException(status_code=404, detail="Assessment bulunamadı")
+        
+        # Get all responses for detailed analysis
+        responses = await db.esrs_responses.find({"assessment_id": assessment["id"]}).to_list(1000)
+        
+        # Calculate category scores
+        category_scores = {}
+        category_counts = {}
+        
+        for response in responses:
+            # Get question to determine category
+            question = await db.esrs_questions.find_one({"dp_id": response["dp_id"]})
+            if question:
+                category = question.get("category", "general")
+                if category not in category_scores:
+                    category_scores[category] = 0
+                    category_counts[category] = 0
+                
+                category_scores[category] += response.get("selected_score", 0)
+                category_counts[category] += 1
+        
+        # Calculate averages
+        for category in category_scores:
+            if category_counts[category] > 0:
+                category_scores[category] = round((category_scores[category] / (category_counts[category] * 5)) * 100, 2)
+        
+        # Generate recommendations based on scores
+        recommendations = generate_esrs_recommendations(assessment.get("overall_score", 0), category_scores)
+        
+        return {
+            "assessment_id": assessment["id"],
+            "organization_id": organization_id,
+            "overall_score": assessment.get("overall_score", 0),
+            "maturity_level": assessment.get("maturity_level", "Başlanmadı"),
+            "answered_questions": assessment.get("answered_questions", 0),
+            "total_questions": assessment.get("total_questions", 0),
+            "completion_percentage": round((assessment.get("answered_questions", 0) / assessment.get("total_questions", 1)) * 100, 1),
+            "category_scores": category_scores,
+            "recommendations": recommendations,
+            "assessment_date": assessment.get("assessment_date"),
+            "status": assessment.get("status", "in_progress"),
+            "next_steps": get_esrs_next_steps(assessment.get("overall_score", 0))
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sonuçlar yüklenemedi: {str(e)}")
+
+def generate_esrs_recommendations(overall_score: float, category_scores: dict) -> list:
+    """Generate specific recommendations based on ESRS assessment scores"""
+    recommendations = []
+    
+    if overall_score < 35:
+        recommendations.extend([
+            "ESRS raporlama gerekliliklerini anlamak için kapsamlı eğitim alın",
+            "Sürdürülebilirlik raporlama ekibi kurun",
+            "Temel veri toplama süreçlerini oluşturun",
+            "ESRS standartlarına uyum için danışmanlık desteği alın"
+        ])
+    elif overall_score < 50:
+        recommendations.extend([
+            "Mevcut sürdürülebilirlik verilerini ESRS formatına uyarlayın",
+            "Double materiality değerlendirmesi yapın",
+            "Stakeholder engagement süreçlerini güçlendirin",
+            "ESRS disclosure gereklilikleri için hazırlık yapın"
+        ])
+    elif overall_score < 65:
+        recommendations.extend([
+            "ESRS raporlama kalitesini artırın",
+            "Veri güvenilirliği için kontrol sistemleri kurun",
+            "İleri analitik ve trend analizi yapın",
+            "Sektör benchmark'ları ile karşılaştırma yapın"
+        ])
+    else:
+        recommendations.extend([
+            "ESRS raporlama excellence için best practice'leri uygulayın",
+            "Sürdürülebilirlik performansını optimize edin",
+            "Innovation ve gelişim alanlarını belirleyin",
+            "Sektöre liderlik edecek initiatives başlatın"
+        ])
+    
+    # Category-specific recommendations
+    for category, score in category_scores.items():
+        if score < 50:
+            if category == 'environmental':
+                recommendations.append(f"Çevre kategorisinde (skor: {score}%) iyileştirme yapın - GHG emissions, enerji ve su yönetimini güçlendirin")
+            elif category == 'social':
+                recommendations.append(f"Sosyal kategorisinde (skor: {score}%) gelişim sağlayın - İş gücü, toplum ve human rights alanlarını geliştirin")
+            elif category == 'governance':
+                recommendations.append(f"Governance kategorisinde (skor: {score}%) ilerleme kaydedin - Business conduct ve risk yönetimini iyileştirin")
+    
+    return recommendations[:8]  # Top 8 recommendations
+
+def get_esrs_next_steps(overall_score: float) -> list:
+    """Get next steps based on current maturity level"""
+    if overall_score < 35:
+        return [
+            "ESRS temel eğitimi alın",
+            "Mevcut sustainability data inventory'sini yapın",
+            "İlk double materiality assessment'ı gerçekleştirin"
+        ]
+    elif overall_score < 50:
+        return [
+            "ESRS disclosure requirements'ı detaylandırın",
+            "Veri toplama süreçlerini standardize edin",
+            "Stakeholder engagement planı geliştirin"
+        ]
+    elif overall_score < 65:
+        return [
+            "ESRS raporlama kalitesini validation ile test edin",
+            "Benchmark analysis yapın",
+            "Continuous improvement sistemi kurun"
+        ]
+    else:
+        return [
+            "ESRS excellence programı başlatın",
+            "Sektör leadership initiatives geliştirin",
+            "Innovation ve R&D yatırımlarını artırın"
+        ]
+
 # ESMS-Specific Endpoints (IFC Performance Standard 1)
 @api_router.post("/esms/assessment")
 async def create_esms_assessment(assessment: ESMSAssessment):
