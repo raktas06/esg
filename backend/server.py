@@ -3539,11 +3539,11 @@ async def create_esms_materiality(organization_id: str, df_dict: dict, results: 
 # ESRS Pre-Assessment Endpoints
 @api_router.post("/esrs/load-questions")
 async def load_esrs_questions_from_excel():
-    """Load ESRS questions from Excel file into database"""
+    """Load ESRS questions from updated Excel file into database"""
     try:
-        # Read the uploaded Excel file
-        df_questions = pd.read_excel('/app/pre_esg_assessment.xlsx', sheet_name='ESRS_2_P1')
-        df_answers = pd.read_excel('/app/pre_esg_assessment.xlsx', sheet_name='answer_textblock_actionplan')
+        # Read the updated Excel file
+        df_questions = pd.read_excel('/app/esrs_updated.xlsx', sheet_name='ESRS_2_P1')
+        df_answers = pd.read_excel('/app/esrs_updated.xlsx', sheet_name='answer_textblock_actionplan')
         
         # Clear existing ESRS data
         await db.esrs_questions.delete_many({})
@@ -3552,9 +3552,9 @@ async def load_esrs_questions_from_excel():
         questions_loaded = 0
         answers_loaded = 0
         
-        # Load questions
+        # Load questions from updated structure
         for _, row in df_questions.iterrows():
-            if pd.notna(row.get('DP Question')):
+            if pd.notna(row.get('DP Question')) and pd.notna(row.get('dp_ID')):
                 question_data = {
                     "dp_id": str(row.get('dp_ID', '')),
                     "dp_id_efrag": str(row.get('dp_ID_efrag', '')),
@@ -3571,9 +3571,9 @@ async def load_esrs_questions_from_excel():
                 await db.esrs_questions.insert_one(question_mongo)
                 questions_loaded += 1
         
-        # Load answer options
+        # Load answer options from updated structure
         for _, row in df_answers.iterrows():
-            if pd.notna(row.get('client_answers')):
+            if pd.notna(row.get('client_answers')) and pd.notna(row.get('dp_ID')):
                 answer_data = {
                     "dp_id": str(row.get('dp_ID', '')),
                     "maturity_level_score": int(row.get('maturity_level_score', 1)),
@@ -3589,15 +3589,17 @@ async def load_esrs_questions_from_excel():
                 answers_loaded += 1
         
         return {
-            "message": "ESRS questions and answers loaded successfully",
+            "message": "ESRS sorular ve cevaplar başarıyla güncellendi",
             "questions_loaded": questions_loaded,
             "answers_loaded": answers_loaded,
-            "total_unique_questions": len(df_questions[df_questions['DP Question'].notna()]),
-            "maturity_levels": ["Not Implemented", "Weak", "Emerging", "Strong", "Role Model"]
+            "total_unique_questions": questions_loaded,
+            "maturity_levels": ["Not Implemented", "Weak", "Emerging", "Strong", "Role Model"],
+            "data_source": "esrs_updated.xlsx",
+            "status": "success"
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load ESRS data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"ESRS veri yüklemesi başarısız: {str(e)}")
 
 def determine_esrs_category(esrs_standard: str) -> str:
     """Determine category based on ESRS standard"""
