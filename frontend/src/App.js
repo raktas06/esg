@@ -2143,6 +2143,8 @@ function App() {
                 </CardContent>
               </Card>
 
+            </TabsContent>
+
             <TabsContent value="canvas" className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">ESG Business Model Canvas</h2>
