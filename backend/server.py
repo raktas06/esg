@@ -3683,7 +3683,7 @@ async def get_esrs_questions(organization_id: str, limit: int = 10, offset: int 
                 "answer_options": [
                     {
                         "id": answer.get("id", answer.get("_id")),
-                        "option_text": answer.get("option_text"),
+                        "option_text": answer.get("answer_text"),
                         "maturity_level": answer.get("maturity_level"),
                         "maturity_level_score": answer.get("maturity_level_score", 1)
                     }
