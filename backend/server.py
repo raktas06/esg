@@ -2803,6 +2803,51 @@ async def initialize_comprehensive_sample_data():
         ]
     }
 
+# ESRS Pre-Assessment Models (European Sustainability Reporting Standards)
+class ESRSQuestion(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    dp_id: str  # Data Point ID from ESRS
+    dp_id_efrag: str  # EFRAG identifier
+    esrs_standard: str  # ESRS 2, ESRS E1, etc.
+    question_text: str
+    question_explanation: str = ""
+    question_example: str = ""
+    evidence_required: str = ""
+    category: str = "general"  # general, environmental, social, governance
+    
+class ESRSAnswer(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    dp_id: str
+    maturity_level_score: int  # 1-5 scale
+    maturity_level: str  # Not Implemented, Weak, Emerging, Strong, Role Model
+    answer_text: str
+    reporting_statement: str = ""
+    action_plan: str = ""
+
+class ESRSAssessment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    organization_id: str
+    assessment_name: str = "ESRS Pre-Assessment"
+    assessment_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    total_questions: int = 0
+    answered_questions: int = 0
+    overall_score: float = 0.0
+    maturity_level: str = "Not Started"
+    category_scores: Dict[str, float] = {}
+    recommendations: List[str] = []
+    status: str = "in_progress"  # not_started, in_progress, completed
+
+class ESRSResponse(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assessment_id: str
+    organization_id: str
+    dp_id: str
+    selected_answer_id: str
+    selected_score: int
+    selected_level: str
+    response_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    notes: str = ""
+
 # ESMS-Specific Models (Based on IFC Performance Standard 1)
 class ESMSAssessment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
